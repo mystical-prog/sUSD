@@ -18,6 +18,30 @@ const DISCRIMINATOR_LENGTH: usize = 8;
 const PUBLIC_KEY_LENGTH: usize = 32;
 
 impl CDP {
+
+    pub fn new(debtor : Pubkey, debt_percent : u64, entry_price : u64, amount : u64 ) -> CDP {
+
+        let half_value: u64 = (amount * entry_price ) / 2_00_0000_0000;
+        let sur: u64 = (half_value * (debt_percent - 100)) / 100_00;
+        let col_value: u64 = half_value + sur;
+        let max_debt: u64 = half_value - sur;
+        let liq_value: u64 = half_value + ((half_value * 35 ) / 100);
+        let liquidation_price: u64 = (liq_value * entry_price) / (col_value);
+
+        CDP {
+            debtor,
+            debt_percent,
+            entry_price,
+            liquidation_price,
+            amount,
+            volume : amount,
+            max_debt,
+            used_debt : 0,
+            state : CDPState::Active
+        }
+
+    }
+
     pub const LEN : usize = DISCRIMINATOR_LENGTH + PUBLIC_KEY_LENGTH + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 40;
 
     pub fn add_collateral(&mut self, new_entry_price : u64, amount : u64) -> Result<()> {
@@ -39,12 +63,68 @@ impl CDP {
 
         self.amount = new_amount;
 
-        self.calculate_figures(self.debt_percent, self.entry_price, self.amount, self.used_debt)?;
+        self.calculate_figures(self.debt_percent, self.entry_price, new_amount, self.used_debt)?;
 
         Ok(())
     
     }
 
+    pub fn issue_susd(&mut self, amount : u64) -> Result<()> {
+
+        let new_used_debt: u64 = self.used_debt + amount;
+
+        require!(new_used_debt < self.max_debt, Errors::MaxDebtError);
+
+        self.used_debt = new_used_debt;
+
+        self.calculate_figures(self.debt_percent, self.entry_price, self.amount, new_used_debt)?;
+
+        Ok(())
+
+    }
+
+    pub fn repay_susd(&mut self, amount : u64) -> Result<()> {
+
+        let new_used_debt: u64 = self.used_debt - amount;
+
+        require!(new_used_debt > 0, Errors::MaxDebtError);
+
+        self.used_debt = new_used_debt;
+
+        self.calculate_figures(self.debt_percent, self.entry_price, self.amount, new_used_debt)?;
+
+        Ok(())
+
+    }
+
+    pub fn adjust_debt_percent(&mut self, new_debt_percent : u64) -> Result<()> {
+
+        require!(new_debt_percent >= 14000 && new_debt_percent <= 16000, Errors::DebtPercentRangeError);
+
+        self.debt_percent = new_debt_percent;
+
+        self.calculate_figures(new_debt_percent, self.entry_price, self.amount, self.used_debt)?;
+
+        Ok(())
+
+    }
+
+    pub fn close_position(&mut self) -> Result<()> {
+
+        self.used_debt = 0;
+
+        self.state = CDPState::Closed;
+
+        Ok(())
+
+    }
+
+    pub fn liquidate_position(&mut self) -> Result<()> {
+
+        self.state = CDPState::Liquidated;
+
+        Ok(())
+    }
 
     fn calculate_figures(&mut self, debt_percent : u64, entry_price : u64, amount : u64, used_debt : u64 ) -> Result<()> {
 
