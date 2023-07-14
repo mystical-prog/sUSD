@@ -1,0 +1,7 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "./programs/s-usd/Cargo.toml",
+        "./programs/s-usd/Cargo.toml"
+    ],
+    "rust-analyzer.showUnlinkedFileNotification": false
+}
