@@ -21,6 +21,8 @@ impl CDP {
 
     pub fn new(debtor : Pubkey, debt_percent : u64, entry_price : u64, amount : u64 ) -> CDP {
 
+        require!(debt_percent >= 14000 && new_debt_percent <= 16000, Errors::DebtPercentRangeError);
+
         let half_value: u64 = (amount * entry_price ) / 2_00_0000_0000;
         let sur: u64 = (half_value * (debt_percent - 100)) / 100_00;
         let col_value: u64 = half_value + sur;
@@ -49,8 +51,11 @@ impl CDP {
         self.entry_price = new_entry_price;
 
         let new_amount : u64 = self.amount + amount;
+        let new_volume : u64 = self.volume + amount;
 
         self.amount = new_amount;
+
+        self.volume = new_volume;
 
         self.calculate_figures(self.debt_percent, new_entry_price, new_amount, self.used_debt)?;
 

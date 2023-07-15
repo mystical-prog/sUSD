@@ -7,5 +7,20 @@ pub enum Errors{
     MaxDebtError,
 
     #[msg("Debt percent range error")]
-    DebtPercentRangeError
+    DebtPercentRangeError,
+
+    #[msg("Wrong price id has been sent in the instruction")]
+    WrongPriceFeedId,
+
+    #[msg("Pyth network didn't send the required price")]
+    PythPriceError,
+
+    #[msg("The amount cannot be zero")]
+    ZeroAmountError,
+
+    #[msg("The amount of SOL has to be larger than 0.099")]
+    SOLAmountError,
+
+    #[msg("You cannot interact with a position that is not active")]
+    ActiveStateError
 }
