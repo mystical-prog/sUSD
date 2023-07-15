@@ -3,8 +3,14 @@ use anchor_lang::error_code;
 #[error_code]
 pub enum Errors{
 
+    #[msg("You do not own this position!")]
+    AuthorityError,
+
     #[msg("Used debt cannot exceed max debt")]
     MaxDebtError,
+
+    #[msg("Debt cannot be negative")]
+    NegativeDebtError,
 
     #[msg("Debt percent range error")]
     DebtPercentRangeError,
@@ -22,5 +28,8 @@ pub enum Errors{
     SOLAmountError,
 
     #[msg("You cannot interact with a position that is not active")]
-    ActiveStateError
+    ActiveStateError,
+
+    #[msg("Price is above the liquidation range for this position")]
+    LiquidationError,
 }

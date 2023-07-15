@@ -25,7 +25,7 @@ pub mod s_usd {
         let signer : &Signer = &ctx.accounts.signer;
         let sol_usd_price_feed: pyth_sdk_solana::PriceFeed = load_price_feed_from_account_info(&ctx.accounts.sol_usd_price_account).unwrap();
 
-        if let Some(current_price) = sol_usd_price_feed.get_current_price(){
+        if let Some(current_price) = sol_usd_price_feed.get_current_price() {
             cdp = CDP::new(signer.key(), debt_percent, current_price, ((amount * 100) / LAMPORTS_PER_SOL))?;
         } else {
             return Err(error!(Errors::PythPriceError))
@@ -45,9 +45,10 @@ pub mod s_usd {
         let cdp : &mut Account<CDP> = &mut ctx.accounts.cdp;
         require!(cdp.state == CDPState::Active, Errors::ActiveStateError);
         let signer : &Signer = &ctx.accounts.signer;
+        require!(cdp.debtor == signer.key(), Errors::AuthorityError);
         let sol_usd_price_feed: pyth_sdk_solana::PriceFeed = load_price_feed_from_account_info(&ctx.accounts.sol_usd_price_account).unwrap();
 
-        if let Some(current_price) = sol_usd_price_feed.get_current_price(){
+        if let Some(current_price) = sol_usd_price_feed.get_current_price() {
             
             let new_amount: u64 = cdp.amount + ((amount * 100) / LAMPORTS_PER_SOL);
             let avg: u64 = ((cdp.amount * cdp.entry_price) + (((amount * 100) / LAMPORTS_PER_SOL) * current_price)) / new_amount;
@@ -62,17 +63,94 @@ pub mod s_usd {
 
     pub fn remove_collateral(ctx : Context<CollateralManagement>, amount : u64) -> Result<()> {
 
-        require!(amount > 0, Errors::ZeroAmountError);
+        require!(amount >= (LAMPORTS_PER_SOL / 100), Errors::SOLAmountError);
 
         let cdp : &mut Account<CDP> = &mut ctx.accounts.cdp;
         require!(cdp.state == CDPState::Active, Errors::ActiveStateError);
         let signer : &Signer = &ctx.accounts.signer;
+        require!(cdp.debtor == signer.key(), Errors::AuthorityError);
             
         let new_amount: u64 = cdp.amount - ((amount * 100) / LAMPORTS_PER_SOL);
         cdp.remove_collateral(new_amount)?;
 
         Ok(())
     }
+
+    pub fn issue_susd(ctx : Context<SUSDManagement>, amount : u64) -> Result<()> {
+
+        require!(amount > 0, Errors::ZeroAmountError);
+
+        let cdp : &mut Account<CDP> = &mut ctx.accounts.cdp;
+        require!(cdp.state == CDPState::Active, Errors::ActiveStateError);
+        let signer : &Signer = &ctx.accounts.signer;
+        require!(cdp.debtor == signer.key(), Errors::AuthorityError);
+
+        cdp.issue_susd(amount)?;
+        Ok(())
+
+    }
+
+    pub fn repay_susd(ctx : Context<SUSDManagement>, amount : u64) -> Result<()> {
+
+        require!(amount > 0, Errors::ZeroAmountError);
+
+        let cdp : &mut Account<CDP> = &mut ctx.accounts.cdp;
+        require!(cdp.state == CDPState::Active, Errors::ActiveStateError);
+        let signer : &Signer = &ctx.accounts.signer;
+        require!(cdp.debtor == signer.key(), Errors::AuthorityError);
+
+        cdp.repay_susd(amount)?;
+        Ok(())
+
+    }
+
+    pub fn adjust_debt_percent(ctx : Context<SUSDManagement>, new_debt_percent : u64) -> Result<()> {
+
+        let cdp : &mut Account<CDP> = &mut ctx.accounts.cdp;
+        require!(cdp.state == CDPState::Active, Errors::ActiveStateError);
+        let signer : &Signer = &ctx.accounts.signer;
+        require!(cdp.debtor == signer.key(), Errors::AuthorityError);
+
+        cdp.adjust_debt_percent(new_debt_percent)?;
+        Ok(())
+
+    }
+
+    pub fn close_position(ctx : Context<SUSDManagement>) -> Result<()> {
+
+        let cdp : &mut Account<CDP> = &mut ctx.accounts.cdp;
+        require!(cdp.state == CDPState::Active, Errors::ActiveStateError);
+        let signer : &Signer = &ctx.accounts.signer;
+        require!(cdp.debtor == signer.key(), Errors::AuthorityError);
+
+        cdp.close_position()?;
+        Ok(())
+
+    }
+
+    pub fn liquidate_position(ctx : Context<LiquidateInstruction>) -> Result<()> {
+
+        if Pubkey::from_str(SOLD_USD_PRICEFEED_ID) != Ok(ctx.accounts.sol_usd_price_account.key()){
+            return Err(error!(Errors::WrongPriceFeedId))
+        };
+
+        let cdp : &mut Account<CDP> = &mut ctx.accounts.cdp;
+        require!(cdp.state == CDPState::Active, Errors::ActiveStateError);
+        let sol_usd_price_feed: pyth_sdk_solana::PriceFeed = load_price_feed_from_account_info(&ctx.accounts.sol_usd_price_account).unwrap();
+
+        if let Some(current_price) = sol_usd_price_feed.get_current_price() {
+            if current_price < cdp.liquidation_price {
+                cdp.liquidate_position()?;
+            } else {
+                return Err(error!(Errors::LiquidationError))
+            }
+        } else {
+            return Err(error!(Errors::PythPriceError))
+        }
+
+        Ok(())
+    }
+
 
 }
 
@@ -110,6 +188,7 @@ pub struct CollateralManagement<'info> {
 
 }
 
+#[derive(Accounts)]
 pub struct SUSDManagement<'info> {
 
     #[account(mut)]
@@ -120,4 +199,18 @@ pub struct SUSDManagement<'info> {
 
     pub system_program : Program<'info, System>
 
+}
+
+#[derive(Accounts)]
+pub struct LiquidateInstruction<'info> {
+
+    #[account(mut)]
+    pub cdp : Account<'info, CDP>,
+
+    #[account(mut)]
+    pub signer : Signer<'info>,
+
+    pub sol_usd_price_account : AccountInfo<'info>,
+
+    pub system_program : Program<'info, System>
 }

@@ -46,11 +46,10 @@ impl CDP {
 
     pub const LEN : usize = DISCRIMINATOR_LENGTH + PUBLIC_KEY_LENGTH + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 40;
 
-    pub fn add_collateral(&mut self, new_entry_price : u64, amount : u64) -> Result<()> {
+    pub fn add_collateral(&mut self, new_entry_price : u64, new_amount : u64) -> Result<()> {
 
         self.entry_price = new_entry_price;
 
-        let new_amount : u64 = self.amount + amount;
         let new_volume : u64 = self.volume + amount;
 
         self.amount = new_amount;
@@ -62,9 +61,7 @@ impl CDP {
         Ok(())
     }
 
-    pub fn remove_collateral(&mut self, amount : u64) -> Result<()> {
-
-        let new_amount: u64 = self.amount - amount;
+    pub fn remove_collateral(&mut self, new_amount : u64) -> Result<()> {
 
         self.amount = new_amount;
 
@@ -92,7 +89,7 @@ impl CDP {
 
         let new_used_debt: u64 = self.used_debt - amount;
 
-        require!(new_used_debt > 0, Errors::MaxDebtError);
+        require!(new_used_debt > 0, Errors::NegativeDebtError);
 
         self.used_debt = new_used_debt;
 
@@ -115,8 +112,6 @@ impl CDP {
     }
 
     pub fn close_position(&mut self) -> Result<()> {
-
-        self.used_debt = 0;
 
         self.state = CDPState::Closed;
 
