@@ -8,7 +8,7 @@ use std::str::FromStr;
 
 pub mod state;
 pub mod errors;
-declare_id!("64kP5mUqZ7ZHu3qXzmGSKyF5eBpUocsGX3eYqgXtcqhr");
+declare_id!("6BMtkbE3ZmUvrdXf2ZGw1XfSuRQgRQJHgmtqrXsAD2ry");
 const SOLD_USD_PRICEFEED_ID : &str = "J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix";
 
 #[program]
@@ -99,10 +99,15 @@ pub mod s_usd {
         require!(cdp.state == CDPState::Active, Errors::ActiveStateError);
         let signer : &Signer = &ctx.accounts.signer;
         require!(cdp.debtor == signer.key(), Errors::AuthorityError);
-        let seeds_bump = &[
-            &signer.to_account_info().key.clone().to_bytes(),
-            &[bump]
+        
+        let signer_seed = signer.to_account_info().key.clone().to_bytes();
+
+        let authority_seeds = &[
+            &signer_seed[..],
+            &[bump],
         ];
+
+        let binding = [&authority_seeds[..]];
 
         let cpi_context = CpiContext::new_with_signer(
             ctx.accounts.system_program.to_account_info(),
@@ -110,7 +115,7 @@ pub mod s_usd {
                 from : ctx.accounts.sol_pda.to_account_info().clone(),
                 to : signer.to_account_info().clone(),
             },
-            &seeds_bump
+            &binding
         );
 
         system_program::transfer(cpi_context, amount)?;
