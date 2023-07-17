@@ -14,14 +14,15 @@ pub struct CDP {
     pub state : CDPState,
 }
 
+#[account]
+pub struct SolPDA {}
+
 const DISCRIMINATOR_LENGTH: usize = 8;
 const PUBLIC_KEY_LENGTH: usize = 32;
 
 impl CDP {
 
-    pub fn new(debtor : Pubkey, debt_percent : u64, entry_price : u64, amount : u64 ) -> CDP {
-
-        require!(debt_percent >= 14000 && new_debt_percent <= 16000, Errors::DebtPercentRangeError);
+    pub fn init(&mut self, debtor : Pubkey, debt_percent : u64, entry_price : u64, amount : u64 ) -> Result<()> {
 
         let half_value: u64 = (amount * entry_price ) / 2_00_0000_0000;
         let sur: u64 = (half_value * (debt_percent - 100)) / 100_00;
@@ -30,17 +31,17 @@ impl CDP {
         let liq_value: u64 = half_value + ((half_value * 35 ) / 100);
         let liquidation_price: u64 = (liq_value * entry_price) / (col_value);
 
-        CDP {
-            debtor,
-            debt_percent,
-            entry_price,
-            liquidation_price,
-            amount,
-            volume : amount,
-            max_debt,
-            used_debt : 0,
-            state : CDPState::Active
-        }
+        self.debtor = debtor;
+        self.debt_percent = debt_percent;
+        self.entry_price = entry_price;
+        self.liquidation_price = liquidation_price;
+        self.amount = amount;
+        self.volume = amount;
+        self.max_debt = max_debt;
+        self.used_debt = 0;
+        self.state = CDPState::Active;
+
+        Ok(())
 
     }
 
@@ -50,11 +51,7 @@ impl CDP {
 
         self.entry_price = new_entry_price;
 
-        let new_volume : u64 = self.volume + amount;
-
         self.amount = new_amount;
-
-        self.volume = new_volume;
 
         self.calculate_figures(self.debt_percent, new_entry_price, new_amount, self.used_debt)?;
 

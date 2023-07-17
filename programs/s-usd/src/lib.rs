@@ -1,8 +1,10 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program;
 use pyth_sdk_solana::load_price_feed_from_account_info;
 use anchor_lang::solana_program::native_token::LAMPORTS_PER_SOL;
 use crate::state::cdp::*;
 use crate::errors::Errors;
+use std::str::FromStr;
 
 pub mod state;
 pub mod errors;
@@ -19,14 +21,28 @@ pub mod s_usd {
             return Err(error!(Errors::WrongPriceFeedId))
         };
 
+        require!(debt_percent >= 14000 && debt_percent <= 16000, Errors::DebtPercentRangeError);
+
         require!(amount >= (LAMPORTS_PER_SOL / 100), Errors::SOLAmountError);
 
         let cdp : &mut Account<CDP> = &mut ctx.accounts.new_cdp;
         let signer : &Signer = &ctx.accounts.signer;
         let sol_usd_price_feed: pyth_sdk_solana::PriceFeed = load_price_feed_from_account_info(&ctx.accounts.sol_usd_price_account).unwrap();
+        let current_timestamp = Clock::get()?.unix_timestamp;
 
-        if let Some(current_price) = sol_usd_price_feed.get_current_price() {
-            cdp = CDP::new(signer.key(), debt_percent, current_price, ((amount * 100) / LAMPORTS_PER_SOL))?;
+        if let Some(current_price) = sol_usd_price_feed.get_price_no_older_than(current_timestamp, 60) {
+
+            let cpi_context = CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                system_program::Transfer {
+                    from : signer.to_account_info().clone(),
+                    to : ctx.accounts.sol_pda.to_account_info().clone(),
+                },
+            );
+
+            system_program::transfer(cpi_context, amount)?;
+
+            cdp.init(signer.key(), debt_percent, current_price.price as u64, (amount * 100) / LAMPORTS_PER_SOL)?;
         } else {
             return Err(error!(Errors::PythPriceError))
         }
@@ -47,11 +63,25 @@ pub mod s_usd {
         let signer : &Signer = &ctx.accounts.signer;
         require!(cdp.debtor == signer.key(), Errors::AuthorityError);
         let sol_usd_price_feed: pyth_sdk_solana::PriceFeed = load_price_feed_from_account_info(&ctx.accounts.sol_usd_price_account).unwrap();
+        let current_timestamp = Clock::get()?.unix_timestamp;
 
-        if let Some(current_price) = sol_usd_price_feed.get_current_price() {
+        if let Some(current_price) = sol_usd_price_feed.get_price_no_older_than(current_timestamp, 60) {
             
             let new_amount: u64 = cdp.amount + ((amount * 100) / LAMPORTS_PER_SOL);
-            let avg: u64 = ((cdp.amount * cdp.entry_price) + (((amount * 100) / LAMPORTS_PER_SOL) * current_price)) / new_amount;
+            let avg: u64 = ((cdp.amount * cdp.entry_price) + (((amount * 100) / LAMPORTS_PER_SOL) * (current_price.price as u64))) / new_amount;
+
+            let cpi_context = CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                system_program::Transfer {
+                    from : signer.to_account_info().clone(),
+                    to : ctx.accounts.sol_pda.to_account_info().clone(),
+                },
+            );
+
+            system_program::transfer(cpi_context, amount)?;
+
+            cdp.volume = cdp.volume + amount;
+
             cdp.add_collateral(avg, new_amount)?;
             
         } else {
@@ -61,7 +91,7 @@ pub mod s_usd {
         Ok(())
     }
 
-    pub fn remove_collateral(ctx : Context<CollateralManagement>, amount : u64) -> Result<()> {
+    pub fn remove_collateral(ctx : Context<CollateralManagement>, amount : u64, bump : u8) -> Result<()> {
 
         require!(amount >= (LAMPORTS_PER_SOL / 100), Errors::SOLAmountError);
 
@@ -69,6 +99,21 @@ pub mod s_usd {
         require!(cdp.state == CDPState::Active, Errors::ActiveStateError);
         let signer : &Signer = &ctx.accounts.signer;
         require!(cdp.debtor == signer.key(), Errors::AuthorityError);
+        let seeds_bump = &[
+            &signer.to_account_info().key.clone().to_bytes(),
+            &[bump]
+        ];
+
+        let cpi_context = CpiContext::new_with_signer(
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from : ctx.accounts.sol_pda.to_account_info().clone(),
+                to : signer.to_account_info().clone(),
+            },
+            &seeds_bump
+        );
+
+        system_program::transfer(cpi_context, amount)?;
             
         let new_amount: u64 = cdp.amount - ((amount * 100) / LAMPORTS_PER_SOL);
         cdp.remove_collateral(new_amount)?;
@@ -137,9 +182,10 @@ pub mod s_usd {
         let cdp : &mut Account<CDP> = &mut ctx.accounts.cdp;
         require!(cdp.state == CDPState::Active, Errors::ActiveStateError);
         let sol_usd_price_feed: pyth_sdk_solana::PriceFeed = load_price_feed_from_account_info(&ctx.accounts.sol_usd_price_account).unwrap();
+        let current_timestamp = Clock::get()?.unix_timestamp;
 
-        if let Some(current_price) = sol_usd_price_feed.get_current_price() {
-            if current_price < cdp.liquidation_price {
+        if let Some(current_price) = sol_usd_price_feed.get_price_no_older_than(current_timestamp, 60) {
+            if (current_price.price as u64) < cdp.liquidation_price {
                 cdp.liquidate_position()?;
             } else {
                 return Err(error!(Errors::LiquidationError))
@@ -164,6 +210,15 @@ pub struct CreateCDP<'info> {
     )]
     pub new_cdp : Account<'info, CDP>,
 
+    #[account(
+        init_if_needed,
+        seeds = [&signer.to_account_info().key.clone().to_bytes()],
+        bump,
+        payer = signer,
+        space = 8
+    )]
+    pub sol_pda : Account<'info, SolPDA>,
+
     #[account(mut)]
     pub signer : Signer<'info>,
 
@@ -181,6 +236,13 @@ pub struct CollateralManagement<'info> {
 
     #[account(mut)]
     pub signer : Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [&signer.to_account_info().key.clone().to_bytes()],
+        bump
+    )]
+    pub sol_pda : Account<'info, SolPDA>,
 
     pub sol_usd_price_account : AccountInfo<'info>,
 
