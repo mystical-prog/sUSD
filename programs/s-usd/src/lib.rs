@@ -1,8 +1,10 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
+use anchor_spl::token::{ TokenAccount, Mint, Token, mint_to, MintTo, burn, Burn };
 use pyth_sdk_solana::load_price_feed_from_account_info;
 use anchor_lang::solana_program::native_token::LAMPORTS_PER_SOL;
 use crate::state::cdp::*;
+use crate::state::marketplace::*;
 use crate::errors::Errors;
 use std::str::FromStr;
 
@@ -13,6 +15,7 @@ const SOLD_USD_PRICEFEED_ID : &str = "J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVk
 
 #[program]
 pub mod s_usd {
+
     use super::*;
 
     pub fn create_cdp(ctx: Context<CreateCDP>, amount : u64, debt_percent : u64) -> Result<()> {
@@ -126,7 +129,7 @@ pub mod s_usd {
         Ok(())
     }
 
-    pub fn issue_susd(ctx : Context<SUSDManagement>, amount : u64) -> Result<()> {
+    pub fn issue_susd(ctx : Context<SUSDManagement>, amount : u64, susd_bump : u8) -> Result<()> {
 
         require!(amount > 0, Errors::ZeroAmountError);
 
@@ -134,6 +137,28 @@ pub mod s_usd {
         require!(cdp.state == CDPState::Active, Errors::ActiveStateError);
         let signer : &Signer = &ctx.accounts.signer;
         require!(cdp.debtor == signer.key(), Errors::AuthorityError);
+
+        let signer_seed = b"susd-token";
+
+        let authority_seeds = &[
+            &signer_seed[..],
+            &[susd_bump],
+        ];
+
+        let binding = [&authority_seeds[..]];
+
+        mint_to(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(), 
+                MintTo { 
+                    mint: ctx.accounts.susd_mint.to_account_info(), 
+                    to: ctx.accounts.signer_susd.to_account_info(), 
+                    authority: ctx.accounts.susd_mint.to_account_info(),
+                }, 
+                &binding
+            ), 
+            amount
+        )?;
 
         cdp.issue_susd(amount)?;
         Ok(())
@@ -148,6 +173,18 @@ pub mod s_usd {
         require!(cdp.state == CDPState::Active, Errors::ActiveStateError);
         let signer : &Signer = &ctx.accounts.signer;
         require!(cdp.debtor == signer.key(), Errors::AuthorityError);
+
+        burn(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(), 
+                Burn { 
+                    mint: ctx.accounts.susd_mint.to_account_info(), 
+                    from: ctx.accounts.signer_susd.to_account_info(), 
+                    authority: signer.to_account_info() 
+                }
+            ), 
+            amount
+        )?;        
 
         cdp.repay_susd(amount)?;
         Ok(())
@@ -166,19 +203,51 @@ pub mod s_usd {
 
     }
 
-    pub fn close_position(ctx : Context<SUSDManagement>) -> Result<()> {
+    pub fn close_position(ctx : Context<ClosePosition>, bump : u8) -> Result<()> {
 
         let cdp : &mut Account<CDP> = &mut ctx.accounts.cdp;
         require!(cdp.state == CDPState::Active, Errors::ActiveStateError);
         let signer : &Signer = &ctx.accounts.signer;
         require!(cdp.debtor == signer.key(), Errors::AuthorityError);
 
+        burn(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(), 
+                Burn { 
+                    mint: ctx.accounts.susd_mint.to_account_info(), 
+                    from: ctx.accounts.signer_susd.to_account_info(), 
+                    authority: signer.to_account_info() 
+                }
+            ), 
+            cdp.used_debt
+        )?; 
+
+        let signer_seed = signer.to_account_info().key.clone().to_bytes();
+
+        let authority_seeds = &[
+            &signer_seed[..],
+            &[bump],
+        ];
+
+        let binding = [&authority_seeds[..]];
+
+        let cpi_context = CpiContext::new_with_signer(
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from : ctx.accounts.sol_pda.to_account_info().clone(),
+                to : signer.to_account_info().clone(),
+            },
+            &binding
+        );
+
+        system_program::transfer(cpi_context, (cdp.amount * LAMPORTS_PER_SOL) / 100)?;
+
         cdp.close_position()?;
         Ok(())
 
     }
 
-    pub fn liquidate_position(ctx : Context<LiquidateInstruction>) -> Result<()> {
+    pub fn liquidate_position(ctx : Context<LiquidateInstruction>, bump : u8) -> Result<()> {
 
         if Pubkey::from_str(SOLD_USD_PRICEFEED_ID) != Ok(ctx.accounts.sol_usd_price_account.key()){
             return Err(error!(Errors::WrongPriceFeedId))
@@ -198,6 +267,77 @@ pub mod s_usd {
         } else {
             return Err(error!(Errors::PythPriceError))
         }
+
+        let listing : &mut Account<Listing> = &mut ctx.accounts.listing;
+
+        listing.liquidator = *ctx.accounts.signer.key;
+        listing.debtor = cdp.debtor;
+        listing.sol_amount = cdp.amount;
+        listing.susd_amount = cdp.used_debt;
+        listing.state = ListingState::Active;
+
+        let signer_seed = cdp.debtor.clone().to_bytes();
+
+        let authority_seeds = &[
+            &signer_seed[..],
+            &[bump],
+        ];
+
+        let binding = [&authority_seeds[..]];
+
+        let cpi_context = CpiContext::new_with_signer(
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from : ctx.accounts.sol_pda.to_account_info().clone(),
+                to : ctx.accounts.listing.to_account_info(),
+            },
+            &binding
+        );
+
+        system_program::transfer(cpi_context, (cdp.amount * LAMPORTS_PER_SOL) / 100)?;
+
+        cdp.liquidate_position()?;
+        Ok(())
+    }
+
+    pub fn buy_collateral(ctx : Context<BuyCollateral>, bump : u8) -> Result<()> {
+
+        let cdp: &Account<CDP> = &ctx.accounts.cdp;
+        require!(cdp.state == CDPState::Liquidated, Errors::LiquidationStateError);
+        let listing : &mut Account<Listing> = &mut ctx.accounts.listing;
+        require!(listing.state == ListingState::Active, Errors::ActiveListingError);
+
+        let signer_seed = cdp.key().clone().to_bytes();
+
+        let authority_seeds = &[
+            &signer_seed[..],
+            &[bump],
+        ];
+
+        let binding = [&authority_seeds[..]];
+
+        let cpi_context = CpiContext::new_with_signer(
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from : listing.to_account_info().clone(),
+                to : ctx.accounts.signer.to_account_info(),
+            },
+            &binding
+        );
+
+        system_program::transfer(cpi_context, (listing.sol_amount * LAMPORTS_PER_SOL) / 100)?;
+
+        burn(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(), 
+                Burn { 
+                    mint: ctx.accounts.susd_mint.to_account_info(), 
+                    from: ctx.accounts.signer_susd.to_account_info(), 
+                    authority: ctx.accounts.signer.to_account_info() 
+                }
+            ), 
+            listing.susd_amount
+        )?; 
 
         Ok(())
     }
@@ -224,10 +364,23 @@ pub struct CreateCDP<'info> {
     )]
     pub sol_pda : Account<'info, SolPDA>,
 
+    #[account(
+        init_if_needed,
+        payer = signer,
+        mint::decimals = 6,
+        mint::authority = susd_mint,
+        seeds = [b"susd-token"],
+        bump,
+    )]
+    pub susd_mint : Account<'info, Mint>,
+
     #[account(mut)]
     pub signer : Signer<'info>,
 
+    /// CHECK: we have kept a manual check
     pub sol_usd_price_account : AccountInfo<'info>,
+
+    pub token_program : Program<'info, Token>,
 
     pub system_program : Program<'info, System>
 
@@ -249,6 +402,7 @@ pub struct CollateralManagement<'info> {
     )]
     pub sol_pda : Account<'info, SolPDA>,
 
+    /// CHECK: we have kept a manual check
     pub sol_usd_price_account : AccountInfo<'info>,
 
     pub system_program : Program<'info, System>
@@ -264,6 +418,58 @@ pub struct SUSDManagement<'info> {
     #[account(mut)]
     pub signer : Signer<'info>,
 
+    #[account(
+        mut,
+        seeds = [b"susd-token"],
+        bump,
+    )]
+    pub susd_mint : Account<'info, Mint>,
+
+    #[account(
+        mut,
+        token::mint = susd_mint,
+        token::authority = signer,
+    )]
+    pub signer_susd : Box<Account<'info, TokenAccount>>,
+
+    pub token_program : Program<'info, Token>,
+
+    pub system_program : Program<'info, System>
+
+}
+
+#[derive(Accounts)]
+pub struct ClosePosition<'info> {
+
+    #[account(mut)]
+    pub cdp : Account<'info, CDP>,
+
+    #[account(mut)]
+    pub signer : Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [&signer.to_account_info().key.clone().to_bytes()],
+        bump
+    )]
+    pub sol_pda : Account<'info, SolPDA>,
+
+    #[account(
+        mut,
+        seeds = [b"susd-token"],
+        bump,
+    )]
+    pub susd_mint : Account<'info, Mint>,
+
+    #[account(
+        mut,
+        token::mint = susd_mint,
+        token::authority = signer,
+    )]
+    pub signer_susd : Box<Account<'info, TokenAccount>>,
+
+    pub token_program : Program<'info, Token>,
+
     pub system_program : Program<'info, System>
 
 }
@@ -274,10 +480,77 @@ pub struct LiquidateInstruction<'info> {
     #[account(mut)]
     pub cdp : Account<'info, CDP>,
 
+    #[account(
+        init,
+        payer = signer,
+        space = Listing::LEN,
+        seeds = [&cdp.to_account_info().key.clone().to_bytes()],
+        bump,
+    )]
+    pub listing : Account<'info, Listing>,
+
     #[account(mut)]
     pub signer : Signer<'info>,
 
+    /// CHECK: we have kept a manual check
     pub sol_usd_price_account : AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [&signer.to_account_info().key.clone().to_bytes()],
+        bump
+    )]
+    pub sol_pda : Account<'info, SolPDA>,
+
+    #[account(
+        mut,
+        seeds = [b"susd-token"],
+        bump,
+    )]
+    pub susd_mint : Account<'info, Mint>,
+
+    #[account(
+        mut,
+        token::mint = susd_mint,
+        token::authority = signer,
+    )]
+    pub signer_susd : Box<Account<'info, TokenAccount>>,
+
+    pub token_program : Program<'info, Token>,
+
+    pub system_program : Program<'info, System>
+}
+
+#[derive(Accounts)]
+pub struct BuyCollateral<'info> {
+
+    pub cdp : Account<'info, CDP>,
+
+    #[account(
+        mut,
+        seeds = [&cdp.to_account_info().key.clone().to_bytes()],
+        bump,
+    )]
+    pub listing : Account<'info, Listing>,
+
+    #[account(mut)]
+    pub signer : Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"susd-token"],
+        bump,
+    )]
+    pub susd_mint : Account<'info, Mint>,
+
+    #[account(
+        mut,
+        token::mint = susd_mint,
+        token::authority = signer,
+    )]
+    pub signer_susd : Box<Account<'info, TokenAccount>>,
+
+    pub token_program : Program<'info, Token>,
 
     pub system_program : Program<'info, System>
 }

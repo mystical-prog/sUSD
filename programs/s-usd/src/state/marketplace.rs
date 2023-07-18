@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use crate::errors::Errors;
 
 #[account]
 pub struct Listing {
@@ -8,6 +7,15 @@ pub struct Listing {
     pub sol_amount : u64,
     pub susd_amount : u64,
     pub state : ListingState,
+}
+
+const DISCRIMINATOR_LENGTH: usize = 8;
+const PUBLIC_KEY_LENGTH: usize = 32;
+
+impl Listing {
+
+    pub const LEN : usize = DISCRIMINATOR_LENGTH + PUBLIC_KEY_LENGTH + PUBLIC_KEY_LENGTH + 8 + 8 + 24;
+
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]

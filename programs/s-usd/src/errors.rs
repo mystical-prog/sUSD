@@ -30,6 +30,13 @@ pub enum Errors{
     #[msg("You cannot interact with a position that is not active")]
     ActiveStateError,
 
+    #[msg("The CDP has to be liquidated")]
+    LiquidationStateError,    
+
     #[msg("Price is above the liquidation range for this position")]
     LiquidationError,
+
+    #[msg("You cannot interact with a listing that is not active")]
+    ActiveListingError,
+    
 }
