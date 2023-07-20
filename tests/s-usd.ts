@@ -27,7 +27,6 @@ describe("s-usd", () => {
 
   const sol_usd_price_account = new anchor.web3.PublicKey("J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix");
 
-
   it("Running Tests!!", async () => {
     console.log();
     console.log("Creating a CDP - ")
@@ -77,6 +76,62 @@ describe("s-usd", () => {
     .signers([])
     .rpc()
     console.log("Removed Collateral - ", tx3);
+    console.log();
+
+    const tx4 = await program.methods.repaySusd(new anchor.BN(1000000))
+    .accounts({
+      cdp : new_cdp.publicKey,
+      signer : w1.publicKey,
+      susdMint : susd,
+      signerSusd : singer_susd.address,
+      tokenProgram : TOKEN_PROGRAM_ID,
+      systemProgram : anchor.web3.SystemProgram.programId
+    })
+    .signers([])
+    .rpc();
+    console.log("Repaying SUSD - ", tx4);
+    console.log();
+
+    const tx5 = await program.methods.addCollateral(new anchor.BN(LAMPORTS_PER_SOL/10))
+    .accounts({
+      cdp : new_cdp.publicKey,
+      signer : w1.publicKey,
+      solPda : solPDA,
+      solUsdPriceAccount : sol_usd_price_account,
+      systemProgram : anchor.web3.SystemProgram.programId
+    })
+    .signers([])
+    .rpc();
+    console.log("Added Collateral - ", tx5);
+    console.log();
+
+    const tx6 = await program.methods.adjustDebtPercent(new anchor.BN(15000))
+    .accounts({
+      cdp : new_cdp.publicKey,
+      signer : w1.publicKey,
+      susdMint : susd,
+      signerSusd : singer_susd.address,
+      tokenProgram : TOKEN_PROGRAM_ID,
+      systemProgram : anchor.web3.SystemProgram.programId
+    })
+    .signers([])
+    .rpc();
+    console.log("Adjusting Debt Percents - ", tx6);
+    console.log();
+
+    const tx7 = await program.methods.closePosition(solPDABump)
+    .accounts({
+      cdp : new_cdp.publicKey,
+      signer : w1.publicKey,
+      solPda : solPDA,
+      susdMint : susd,
+      signerSusd : singer_susd.address,
+      tokenProgram : TOKEN_PROGRAM_ID,
+      systemProgram : anchor.web3.SystemProgram.programId
+    })
+    .signers([])
+    .rpc();
+    console.log("Closing Position ", tx7);
     console.log();
   });
 });
