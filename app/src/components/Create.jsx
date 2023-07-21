@@ -38,7 +38,7 @@ const CreateCDPForm = () => {
 
           {/* Slider Input */}
           <label htmlFor="slider-input" className="block text-lg font-medium text-gray-300 transition-colors duration-200 ease-in-out">
-            Slider
+            Safemint Rate
             <div className="flex justify-between text-md text-gray-400">
               <span>137</span>
               <span>160</span>
