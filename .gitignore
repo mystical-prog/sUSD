@@ -1,5 +1,6 @@
 
 .anchor
+.vscode
 .DS_Store
 target
 **/*.rs.bk
