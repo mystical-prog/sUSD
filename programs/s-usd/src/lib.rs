@@ -342,8 +342,56 @@ pub mod s_usd {
         Ok(())
     }
 
+    pub fn create_susd(_ctx : Context<CreateSUSD>) -> Result<()> {
+        Ok(())
+    }
+
+    pub fn create_sol_pda(_ctx : Context<CreateSOLPDA>) -> Result<()> {
+        Ok(())
+    }
+
 
 }
+
+#[derive(Accounts)]
+pub struct CreateSUSD<'info> {
+
+    #[account(mut)]
+    pub signer : Signer<'info>,
+
+    #[account(
+        init,
+        payer = signer,
+        mint::decimals = 6,
+        mint::authority = susd_mint,
+        seeds = [b"susd-token"],
+        bump,
+    )]
+    pub susd_mint : Account<'info, Mint>,
+
+    pub token_program : Program<'info, Token>,
+
+    pub system_program : Program<'info, System>
+}
+
+#[derive(Accounts)]
+pub struct CreateSOLPDA<'info> {
+    
+    #[account(mut)]
+    pub signer : Signer<'info>,
+
+    #[account(
+        init,
+        seeds = [&signer.to_account_info().key.clone().to_bytes()],
+        bump,
+        payer = signer,
+        space = 8
+    )]
+    pub sol_pda : Account<'info, SolPDA>,
+
+    pub system_program : Program<'info, System>
+}
+
 
 #[derive(Accounts)]
 pub struct CreateCDP<'info> {
@@ -353,34 +401,20 @@ pub struct CreateCDP<'info> {
         payer = signer,
         space = CDP::LEN,
     )]
-    pub new_cdp : Account<'info, CDP>,
-
-    #[account(
-        init_if_needed,
-        seeds = [&signer.to_account_info().key.clone().to_bytes()],
-        bump,
-        payer = signer,
-        space = 8
-    )]
-    pub sol_pda : Account<'info, SolPDA>,
-
-    #[account(
-        init_if_needed,
-        payer = signer,
-        mint::decimals = 6,
-        mint::authority = susd_mint,
-        seeds = [b"susd-token"],
-        bump,
-    )]
-    pub susd_mint : Account<'info, Mint>,
+    pub new_cdp : Box<Account<'info, CDP>>,
 
     #[account(mut)]
     pub signer : Signer<'info>,
 
+    #[account(
+        mut,
+        seeds = [&signer.to_account_info().key.clone().to_bytes()],
+        bump,
+    )]
+    pub sol_pda : Box<Account<'info, SolPDA>>,
+
     /// CHECK: we have kept a manual check
     pub sol_usd_price_account : AccountInfo<'info>,
-
-    pub token_program : Program<'info, Token>,
 
     pub system_program : Program<'info, System>
 
@@ -398,9 +432,9 @@ pub struct CollateralManagement<'info> {
     #[account(
         mut,
         seeds = [&signer.to_account_info().key.clone().to_bytes()],
-        bump
+        bump,
     )]
-    pub sol_pda : Account<'info, SolPDA>,
+    pub sol_pda : Box<Account<'info, SolPDA>>,
 
     /// CHECK: we have kept a manual check
     pub sol_usd_price_account : AccountInfo<'info>,

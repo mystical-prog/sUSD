@@ -45,7 +45,7 @@ impl CDP {
 
     }
 
-    pub const LEN : usize = DISCRIMINATOR_LENGTH + PUBLIC_KEY_LENGTH + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 40;
+    pub const LEN : usize = DISCRIMINATOR_LENGTH + PUBLIC_KEY_LENGTH + 56 + 40;
 
     pub fn add_collateral(&mut self, new_entry_price : u64, new_amount : u64) -> Result<()> {
 

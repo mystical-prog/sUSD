@@ -33,21 +33,23 @@ describe("s-usd", () => {
 
     const new_cdp = anchor.web3.Keypair.generate();
     // Add your test here.
+    try{
     const tx = await program.methods.createCdp(new anchor.BN(LAMPORTS_PER_SOL), new anchor.BN(14000))
     .accounts({
       newCdp : new_cdp.publicKey,
       solPda : solPDA,
-      susdMint : susd,
       signer : w1.publicKey,
       solUsdPriceAccount : sol_usd_price_account,
-      tokenProgram : TOKEN_PROGRAM_ID,
       systemProgram : anchor.web3.SystemProgram.programId
     })
-    .signers([])
+    .signers([w1, new_cdp])
     .rpc();
     console.log();
     console.log("Done - ", tx);
     console.log();
+    } catch (error) {
+      console.log(error);
+    }
 
     const singer_susd = await getOrCreateAssociatedTokenAccount(provider.connection, w1, susd, w1.publicKey);
 
