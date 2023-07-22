@@ -1,10 +1,13 @@
 import logo from './logo.svg';
 import './App.css';
+import Navbar from './components/Navbar';
+import CreateCDPForm from './components/Create';
 
 function App() {
   return (
     <div className="App">
-      <h1 className='text-red-300'>Hello</h1>
+      <Navbar />
+      <CreateCDPForm />
     </div>
   );
 }
