@@ -45,6 +45,8 @@ pub mod s_usd {
 
             system_program::transfer(cpi_context, amount)?;
 
+            msg!("current price : {:?}", current_price.price);
+
             cdp.init(signer.key(), debt_percent, current_price.price as u64, (amount * 100) / LAMPORTS_PER_SOL)?;
         } else {
             return Err(error!(Errors::PythPriceError))
@@ -138,7 +140,7 @@ pub mod s_usd {
         let signer : &Signer = &ctx.accounts.signer;
         require!(cdp.debtor == signer.key(), Errors::AuthorityError);
 
-        let signer_seed = b"susd-token";
+        let signer_seed = b"susd";
 
         let authority_seeds = &[
             &signer_seed[..],
@@ -364,7 +366,7 @@ pub struct CreateSUSD<'info> {
         payer = signer,
         mint::decimals = 6,
         mint::authority = susd_mint,
-        seeds = [b"susd-token"],
+        seeds = [b"susd"],
         bump,
     )]
     pub susd_mint : Account<'info, Mint>,
@@ -454,7 +456,7 @@ pub struct SUSDManagement<'info> {
 
     #[account(
         mut,
-        seeds = [b"susd-token"],
+        seeds = [b"susd"],
         bump,
     )]
     pub susd_mint : Account<'info, Mint>,
@@ -490,7 +492,7 @@ pub struct ClosePosition<'info> {
 
     #[account(
         mut,
-        seeds = [b"susd-token"],
+        seeds = [b"susd"],
         bump,
     )]
     pub susd_mint : Account<'info, Mint>,
@@ -538,7 +540,7 @@ pub struct LiquidateInstruction<'info> {
 
     #[account(
         mut,
-        seeds = [b"susd-token"],
+        seeds = [b"susd"],
         bump,
     )]
     pub susd_mint : Account<'info, Mint>,
@@ -572,7 +574,7 @@ pub struct BuyCollateral<'info> {
 
     #[account(
         mut,
-        seeds = [b"susd-token"],
+        seeds = [b"susd"],
         bump,
     )]
     pub susd_mint : Account<'info, Mint>,

@@ -24,8 +24,8 @@ impl CDP {
 
     pub fn init(&mut self, debtor : Pubkey, debt_percent : u64, entry_price : u64, amount : u64 ) -> Result<()> {
 
-        let half_value: u64 = (amount * entry_price ) / 2_00_0000_0000;
-        let sur: u64 = (half_value * (debt_percent - 100)) / 100_00;
+        let half_value: u64 = (amount * entry_price ) / 2_0000;
+        let sur: u64 = (half_value * (debt_percent - 10000)) / 100_00;
         let col_value: u64 = half_value + sur;
         let max_debt: u64 = half_value - sur;
         let liq_value: u64 = half_value + ((half_value * 35 ) / 100);
@@ -125,8 +125,8 @@ impl CDP {
 
     fn calculate_figures(&mut self, debt_percent : u64, entry_price : u64, amount : u64, used_debt : u64 ) -> Result<()> {
 
-        let half_value: u64 = (amount * entry_price ) / 2_00_0000_0000;
-        let sur: u64 = (half_value * (debt_percent - 100)) / 100_00;
+        let half_value: u64 = (amount * entry_price ) / 2_0000;
+        let sur: u64 = (half_value * (debt_percent - 10000)) / 100_00;
         let col_value: u64 = half_value + sur;
         let max_debt: u64 = half_value - sur;
         let free_debt: u64 = max_debt - used_debt;
