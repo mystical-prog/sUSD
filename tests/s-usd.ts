@@ -29,14 +29,15 @@ describe("s-usd", () => {
 
   const sol_usd_price_account = new anchor.web3.PublicKey("J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix");
 
-  const new_cdp = anchor.web3.Keypair.generate();
+  const new_cdp = new anchor.web3.PublicKey("2f5gnoJzyxWKp4qGFAGRyFDrhNdECRLQWdgsXcnbs3Pq");
 
   it("Running Tests!!", async () => {
+    const singer_susd = await getOrCreateAssociatedTokenAccount(provider.connection, w1, susd, w1.publicKey);
     try {
     // Add your test here.
-    console.log("Creating a CDP - ")
+/*    console.log("Creating a CDP - ")
 
-    const tx = await program.methods.createCdp(new anchor.BN(LAMPORTS_PER_SOL), new anchor.BN(14000))
+    const tx = await program.methods.createCdp(new anchor.BN(LAMPORTS_PER_SOL), new anchor.BN(15000))
     .accounts({
       newCdp : new_cdp.publicKey,
       solPda : solPDA,
@@ -50,9 +51,7 @@ describe("s-usd", () => {
     console.log("Done - ", tx);
     console.log();
 
-    const singer_susd = await getOrCreateAssociatedTokenAccount(provider.connection, w1, susd, w1.publicKey);
-
-    const tx2 = await program.methods.issueSusd(new anchor.BN(2000000), susdBump)
+    const tx2 = await program.methods.issueSusd(new anchor.BN(5500000), susdBump)
     .accounts({
       cdp : new_cdp.publicKey,
       signer : w1.publicKey,
@@ -66,9 +65,9 @@ describe("s-usd", () => {
     console.log("Issued SUSD - ", tx2);
     console.log();
 
-    const tx3 = await program.methods.removeCollateral(new anchor.BN(LAMPORTS_PER_SOL/10), solPDABump)
+    const tx3 = await program.methods.removeCollateral(new anchor.BN((LAMPORTS_PER_SOL) /10))
     .accounts({
-      cdp : new_cdp.publicKey,
+      cdp : new_cdp,
       signer : w1.publicKey,
       solPda : solPDA,
       solUsdPriceAccount : sol_usd_price_account,
@@ -78,7 +77,7 @@ describe("s-usd", () => {
     .rpc()
     console.log("Removed Collateral - ", tx3);
     console.log();
-
+    
     const tx4 = await program.methods.repaySusd(new anchor.BN(1000000))
     .accounts({
       cdp : new_cdp.publicKey,
@@ -93,6 +92,7 @@ describe("s-usd", () => {
     console.log("Repaying SUSD - ", tx4);
     console.log();
 
+
     const tx5 = await program.methods.addCollateral(new anchor.BN(LAMPORTS_PER_SOL/10))
     .accounts({
       cdp : new_cdp.publicKey,
@@ -106,9 +106,9 @@ describe("s-usd", () => {
     console.log("Added Collateral - ", tx5);
     console.log();
 
-    const tx6 = await program.methods.adjustDebtPercent(new anchor.BN(15000))
+    const tx6 = await program.methods.adjustDebtPercent(new anchor.BN(14000))
     .accounts({
-      cdp : new_cdp.publicKey,
+      cdp : new_cdp,
       signer : w1.publicKey,
       susdMint : susd,
       signerSusd : singer_susd.address,
@@ -119,20 +119,27 @@ describe("s-usd", () => {
     .rpc();
     console.log("Adjusting Debt Percents - ", tx6);
     console.log();
+*/
+    const [list, listBump] = anchor.web3.PublicKey.findProgramAddressSync(
+      [new_cdp.toBuffer()],
+      program.programId
+    );
 
-    const tx7 = await program.methods.closePosition(solPDABump)
+    const tx7 = await program.methods.liquidatePosition()
     .accounts({
-      cdp : new_cdp.publicKey,
+      cdp : new_cdp,
       signer : w1.publicKey,
       solPda : solPDA,
       susdMint : susd,
       signerSusd : singer_susd.address,
+      solUsdPriceAccount : sol_usd_price_account,
+      listing : list,
       tokenProgram : TOKEN_PROGRAM_ID,
       systemProgram : anchor.web3.SystemProgram.programId
     })
     .signers([])
     .rpc();
-    console.log("Closing Position ", tx7);
+    console.log("Liquidating Position ", tx7);
     console.log();
     } catch (error) {
       console.log(error);

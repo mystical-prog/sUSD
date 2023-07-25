@@ -96,7 +96,7 @@ pub mod s_usd {
         Ok(())
     }
 
-    pub fn remove_collateral(ctx : Context<CollateralManagement>, amount : u64, bump : u8) -> Result<()> {
+    pub fn remove_collateral(ctx : Context<CollateralManagement>, amount : u64) -> Result<()> {
 
         require!(amount >= (LAMPORTS_PER_SOL / 100), Errors::SOLAmountError);
 
@@ -105,25 +105,8 @@ pub mod s_usd {
         let signer : &Signer = &ctx.accounts.signer;
         require!(cdp.debtor == signer.key(), Errors::AuthorityError);
         
-        let signer_seed = signer.to_account_info().key.clone().to_bytes();
-
-        let authority_seeds = &[
-            &signer_seed[..],
-            &[bump],
-        ];
-
-        let binding = [&authority_seeds[..]];
-
-        let cpi_context = CpiContext::new_with_signer(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from : ctx.accounts.sol_pda.to_account_info().clone(),
-                to : signer.to_account_info().clone(),
-            },
-            &binding
-        );
-
-        system_program::transfer(cpi_context, amount)?;
+        **ctx.accounts.sol_pda.to_account_info().try_borrow_mut_lamports()? -= amount;
+        **ctx.accounts.signer.to_account_info().try_borrow_mut_lamports()? += amount;
             
         let new_amount: u64 = cdp.amount - ((amount * 100) / LAMPORTS_PER_SOL);
         cdp.remove_collateral(new_amount)?;
@@ -205,7 +188,7 @@ pub mod s_usd {
 
     }
 
-    pub fn close_position(ctx : Context<ClosePosition>, bump : u8) -> Result<()> {
+    pub fn close_position(ctx : Context<ClosePosition>) -> Result<()> {
 
         let cdp : &mut Account<CDP> = &mut ctx.accounts.cdp;
         require!(cdp.state == CDPState::Active, Errors::ActiveStateError);
@@ -224,32 +207,15 @@ pub mod s_usd {
             cdp.used_debt
         )?; 
 
-        let signer_seed = signer.to_account_info().key.clone().to_bytes();
-
-        let authority_seeds = &[
-            &signer_seed[..],
-            &[bump],
-        ];
-
-        let binding = [&authority_seeds[..]];
-
-        let cpi_context = CpiContext::new_with_signer(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from : ctx.accounts.sol_pda.to_account_info().clone(),
-                to : signer.to_account_info().clone(),
-            },
-            &binding
-        );
-
-        system_program::transfer(cpi_context, (cdp.amount * LAMPORTS_PER_SOL) / 100)?;
+        **ctx.accounts.sol_pda.to_account_info().try_borrow_mut_lamports()? -= (cdp.amount * LAMPORTS_PER_SOL) / 100;
+        **ctx.accounts.signer.to_account_info().try_borrow_mut_lamports()? += (cdp.amount * LAMPORTS_PER_SOL) / 100;
 
         cdp.close_position()?;
         Ok(())
 
     }
 
-    pub fn liquidate_position(ctx : Context<LiquidateInstruction>, bump : u8) -> Result<()> {
+    pub fn liquidate_position(ctx : Context<LiquidateInstruction>) -> Result<()> {
 
         if Pubkey::from_str(SOLD_USD_PRICEFEED_ID) != Ok(ctx.accounts.sol_usd_price_account.key()){
             return Err(error!(Errors::WrongPriceFeedId))
@@ -260,7 +226,10 @@ pub mod s_usd {
         let sol_usd_price_feed: pyth_sdk_solana::PriceFeed = load_price_feed_from_account_info(&ctx.accounts.sol_usd_price_account).unwrap();
         let current_timestamp = Clock::get()?.unix_timestamp;
 
+        msg!("Liquidation Price : {:?}", cdp.liquidation_price);
+
         if let Some(current_price) = sol_usd_price_feed.get_price_no_older_than(current_timestamp, 60) {
+            msg!("Current Price : {:?}", current_price.price);
             if (current_price.price as u64) < cdp.liquidation_price {
                 cdp.liquidate_position()?;
             } else {
@@ -278,56 +247,22 @@ pub mod s_usd {
         listing.susd_amount = cdp.used_debt;
         listing.state = ListingState::Active;
 
-        let signer_seed = cdp.debtor.clone().to_bytes();
-
-        let authority_seeds = &[
-            &signer_seed[..],
-            &[bump],
-        ];
-
-        let binding = [&authority_seeds[..]];
-
-        let cpi_context = CpiContext::new_with_signer(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from : ctx.accounts.sol_pda.to_account_info().clone(),
-                to : ctx.accounts.listing.to_account_info(),
-            },
-            &binding
-        );
-
-        system_program::transfer(cpi_context, (cdp.amount * LAMPORTS_PER_SOL) / 100)?;
+        **ctx.accounts.sol_pda.to_account_info().try_borrow_mut_lamports()? -= (cdp.amount * LAMPORTS_PER_SOL) / 100;
+        **ctx.accounts.listing.to_account_info().try_borrow_mut_lamports()? += (cdp.amount * LAMPORTS_PER_SOL) / 100;
 
         cdp.liquidate_position()?;
         Ok(())
     }
 
-    pub fn buy_collateral(ctx : Context<BuyCollateral>, bump : u8) -> Result<()> {
+    pub fn buy_collateral(ctx : Context<BuyCollateral>) -> Result<()> {
 
         let cdp: &Account<CDP> = &ctx.accounts.cdp;
         require!(cdp.state == CDPState::Liquidated, Errors::LiquidationStateError);
         let listing : &mut Account<Listing> = &mut ctx.accounts.listing;
         require!(listing.state == ListingState::Active, Errors::ActiveListingError);
 
-        let signer_seed = cdp.key().clone().to_bytes();
-
-        let authority_seeds = &[
-            &signer_seed[..],
-            &[bump],
-        ];
-
-        let binding = [&authority_seeds[..]];
-
-        let cpi_context = CpiContext::new_with_signer(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from : listing.to_account_info().clone(),
-                to : ctx.accounts.signer.to_account_info(),
-            },
-            &binding
-        );
-
-        system_program::transfer(cpi_context, (listing.sol_amount * LAMPORTS_PER_SOL) / 100)?;
+        **listing.to_account_info().try_borrow_mut_lamports()? -= (listing.sol_amount * LAMPORTS_PER_SOL) / 100;
+        **ctx.accounts.signer.to_account_info().try_borrow_mut_lamports()? += (listing.sol_amount * LAMPORTS_PER_SOL) / 100;
 
         burn(
             CpiContext::new(
