@@ -1,0 +1,605 @@
+{
+  "version": "0.1.0",
+  "name": "s_usd",
+  "instructions": [
+    {
+      "name": "createCdp",
+      "accounts": [
+        {
+          "name": "newCdp",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "solPda",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "solUsdPriceAccount",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "debtPercent",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "addCollateral",
+      "accounts": [
+        {
+          "name": "cdp",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "solPda",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "solUsdPriceAccount",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "removeCollateral",
+      "accounts": [
+        {
+          "name": "cdp",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "solPda",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "solUsdPriceAccount",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "issueSusd",
+      "accounts": [
+        {
+          "name": "cdp",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "susdMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signerSusd",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "susdBump",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "repaySusd",
+      "accounts": [
+        {
+          "name": "cdp",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "susdMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signerSusd",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "adjustDebtPercent",
+      "accounts": [
+        {
+          "name": "cdp",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "susdMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signerSusd",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "newDebtPercent",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "closePosition",
+      "accounts": [
+        {
+          "name": "cdp",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "solPda",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "susdMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signerSusd",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "liquidatePosition",
+      "accounts": [
+        {
+          "name": "cdp",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "listing",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "solUsdPriceAccount",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "solPda",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "susdMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signerSusd",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "buyCollateral",
+      "accounts": [
+        {
+          "name": "cdp",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "listing",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "susdMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signerSusd",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "createSusd",
+      "accounts": [
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "susdMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "createSolPda",
+      "accounts": [
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "solPda",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "CDP",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "debtor",
+            "type": "publicKey"
+          },
+          {
+            "name": "debtPercent",
+            "type": "u64"
+          },
+          {
+            "name": "entryPrice",
+            "type": "u64"
+          },
+          {
+            "name": "liquidationPrice",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "volume",
+            "type": "u64"
+          },
+          {
+            "name": "maxDebt",
+            "type": "u64"
+          },
+          {
+            "name": "usedDebt",
+            "type": "u64"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": "CDPState"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "SolPDA",
+      "type": {
+        "kind": "struct",
+        "fields": []
+      }
+    },
+    {
+      "name": "Listing",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "liquidator",
+            "type": "publicKey"
+          },
+          {
+            "name": "debtor",
+            "type": "publicKey"
+          },
+          {
+            "name": "solAmount",
+            "type": "u64"
+          },
+          {
+            "name": "susdAmount",
+            "type": "u64"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": "ListingState"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "CDPState",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Closed"
+          },
+          {
+            "name": "Liquidated"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ListingState",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Sold"
+          }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "AuthorityError",
+      "msg": "You do not own this position!"
+    },
+    {
+      "code": 6001,
+      "name": "MaxDebtError",
+      "msg": "Used debt cannot exceed max debt"
+    },
+    {
+      "code": 6002,
+      "name": "NegativeDebtError",
+      "msg": "Debt cannot be negative"
+    },
+    {
+      "code": 6003,
+      "name": "DebtPercentRangeError",
+      "msg": "Debt percent range error"
+    },
+    {
+      "code": 6004,
+      "name": "WrongPriceFeedId",
+      "msg": "Wrong price id has been sent in the instruction"
+    },
+    {
+      "code": 6005,
+      "name": "PythPriceError",
+      "msg": "Pyth network didn't send the required price"
+    },
+    {
+      "code": 6006,
+      "name": "ZeroAmountError",
+      "msg": "The amount cannot be zero"
+    },
+    {
+      "code": 6007,
+      "name": "SOLAmountError",
+      "msg": "The amount of SOL has to be larger than 0.099"
+    },
+    {
+      "code": 6008,
+      "name": "ActiveStateError",
+      "msg": "You cannot interact with a position that is not active"
+    },
+    {
+      "code": 6009,
+      "name": "LiquidationStateError",
+      "msg": "The CDP has to be liquidated"
+    },
+    {
+      "code": 6010,
+      "name": "LiquidationError",
+      "msg": "Price is above the liquidation range for this position"
+    },
+    {
+      "code": 6011,
+      "name": "ActiveListingError",
+      "msg": "You cannot interact with a listing that is not active"
+    }
+  ]
+}
