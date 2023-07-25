@@ -1,15 +1,27 @@
-import React, { useState } from "react";
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
+import React, { useState, useEffect } from "react";
+import { getCDPsOnChain } from "../logic/chain-call";
 
 const CreateCDPForm = () => {
+  const wallet = useAnchorWallet();
   const [number, setNumber] = useState("");
   const [slider, setSlider] = useState(137);
-  const [activeButton, setActiveButton] = useState("");
+  const [activeButton, setActiveButton] = useState("Market Price");
   const conversionRate = 0.013;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log(`Number: ${number}, Slider: ${slider}`);
   };
+
+  useEffect(() => {
+    (async () => {
+      
+      const cdps = await getCDPsOnChain(wallet);
+      console.log(cdps);
+
+    })();
+  }, []);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900 p-10">

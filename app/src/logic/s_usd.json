@@ -601,5 +601,8 @@
       "name": "ActiveListingError",
       "msg": "You cannot interact with a listing that is not active"
     }
-  ]
+  ],
+  "metadata": {
+    "address": "6BMtkbE3ZmUvrdXf2ZGw1XfSuRQgRQJHgmtqrXsAD2ry"
+  }
 }
