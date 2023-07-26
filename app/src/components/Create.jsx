@@ -1,6 +1,6 @@
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import React, { useState, useEffect } from "react";
-import { getCDPsOnChain } from "../logic/chain-call";
+import { createCDP, createSOLPDA, getCDPsOnChain } from "../logic/chain-call";
 import axios from "axios"
 
 const CreateCDPForm = () => {
@@ -10,34 +10,55 @@ const CreateCDPForm = () => {
   const [activeButton, setActiveButton] = useState("Market Price");
   const [solRate, setRate] = useState();
   const [limitPrice, setLimitPrice] = useState(0);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log(`Number: ${number}, Slider: ${slider}`);
-  };
+  const [loading, setLoading] = useState(false);
+  const [limitOrders, setLimitOrders] = useState([]);
 
   const onMarket = async () => {
+    updateSolRate();
+    setActiveButton("Market Price")
+  }
+
+  const handleLimitOrder = () => {
+    let temp = limitOrders;
+    temp.push({ price : Number(limitPrice.toFixed(2)), amount : Number(number), debtRate : Number(slider) });
+    setLimitOrders(temp);
+  }
+
+  const updateSolRate = async () => {
     const res = await axios.get("https://api.coinbase.com/v2/prices/SOL-USD/spot");
     setRate(Number(res.data.data.amount).toFixed(2));
-    setActiveButton("Market Price")
+  }
+
+  const onCreate = async () => {
+    setLoading(true);
+    if(activeButton == "Market Price") {
+      await createCDP(wallet, number, (slider*100));
+      setLoading(false);
+    } else {
+      handleLimitOrder();
+      console.log(limitOrders);
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
     (async () => {
-
-      const res = await axios.get("https://api.coinbase.com/v2/prices/SOL-USD/spot");
-      setRate(Number(res.data.data.amount).toFixed(2));
-      
+      updateSolRate();
       const cdps = await getCDPsOnChain(wallet);
       console.log(cdps);
-
     })();
+
+    const intervalId = setInterval(updateSolRate, 5000);
+
+    return () => {
+      clearInterval(intervalId);
+    }
+
   }, []);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900 p-10">
-      <form
-        onSubmit={handleSubmit}
+      <div
         className="p-10 bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl transition-all duration-500 ease-in-out transform"
       >
         <h1 className="text-3xl font-semibold mb-5 tracking-wide text-blue-500 text-center">Create CDP</h1>
@@ -72,6 +93,7 @@ const CreateCDPForm = () => {
               type="range"
               min="140"
               max="160"
+              step={0.01}
               id="slider-input"
               className="mt-1 block w-full rounded-full bg-gray-700 text-gray-300 shadow-md transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-blue-500 appearance-none h-3"
               value={slider}
@@ -112,7 +134,8 @@ const CreateCDPForm = () => {
                 type="number"
                 className="mt-4 opacity-100 p-4 block w-full rounded-md bg-gray-700 text-gray-300 border-transparent shadow-md h-12 text-lg transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-blue-500"
                 value={limitPrice}
-                onChange={(e) => setLimitPrice(e.target.value)}
+                step={0.01}
+                onChange={(e) => setLimitPrice(Number(e.target.value))}
               />
             )}
           </label>
@@ -123,15 +146,15 @@ const CreateCDPForm = () => {
           <div className="pt-5">
             <div className="flex justify-center">
               <button
-                type="submit"
                 className="w-1/2 bg-opacity-40 bg-gray-600 border-gray-700 border-4 hover:border-blue-700 text-xl inline-flex justify-center py-2 px-4 border-transparent shadow-2xl font-medium rounded-full text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ease-in-out hover:shadow-3xl transform hover:-translate-y-1"
+                onClick={onCreate}
               >
-                Create
+                { loading ? "Loading.." :  "Create" }
               </button>
             </div>
           </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

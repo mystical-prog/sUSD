@@ -30,6 +30,27 @@ export const getCDPsOnChain = async (wallet) => {
     return cDPsOnChain;
 }
 
+export const createSOLPDA = async (wallet) => {
+    const provider = getProvider(wallet);
+    if(!provider) {
+      throw("Provider is null");
+    }
+    const temp = JSON.parse(JSON.stringify(idl));
+    const program = new anchor.Program(temp, temp.metadata.address, provider);
+    const [solPDA, solPDABump] = anchor.web3.PublicKey.findProgramAddressSync(
+        [provider.wallet.publicKey.toBuffer()],
+        program.programId
+    );
+    const tx = await program.methods.createSolPda()
+    .accounts({
+        signer : provider.wallet.publicKey,
+        solPda : solPDA,
+        systemProgram : anchor.web3.SystemProgram.programId
+    })
+    .signers([])
+    .rpc();
+}
+
 export const createCDP = async (wallet, amount, debtPercent) => {
     const provider = getProvider(wallet);
     if(!provider) {
@@ -43,7 +64,7 @@ export const createCDP = async (wallet, amount, debtPercent) => {
         program.programId
     );
     try {
-        const tx = await program.methods.createCdp(new anchor.BN(amount), new anchor.BN(debtPercent))
+        const tx = await program.methods.createCdp(new anchor.BN(amount * web3.LAMPORTS_PER_SOL), new anchor.BN(debtPercent))
         .accounts({
           newCdp : cdp_program.publicKey,
           solPda : solPDA,
