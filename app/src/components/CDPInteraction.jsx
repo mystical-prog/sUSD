@@ -105,7 +105,7 @@ const CDPInteraction = () => {
                 <button
                   key={index}
                   onClick={() => handleActionClick(action)}
-                  className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded shadow-lg transform transition hover:scale-105"
+                  className="bg-purple-500 hover:bg-purple-700 text-white font-medium py-4 px-6 rounded shadow-lg "
                 >
                   {action}
                 </button>

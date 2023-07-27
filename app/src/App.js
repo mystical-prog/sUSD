@@ -11,6 +11,7 @@ import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
 import BottomBar from './components/BottomBar';
 import CDPInteraction from './components/CDPInteraction';
 import List from './components/List';
+import Landing from './components/Landing';
 
 require('@solana/wallet-adapter-react-ui/styles.css');
 
@@ -19,7 +20,7 @@ function App() {
   window.Buffer = buffer.Buffer;
 
   return (
-    <div className="App">
+    <div className="App font-pop">
       <Navbar />
       <main>
         <List />
