@@ -61,20 +61,20 @@ const CDPInteraction = () => {
 
   return (
     <div className="flex justify-center items-center h-full my-32 bg-gray-900">
-      <div className="w-full md:w-1/2 lg:w-1/2 p-8 bg-gray-800 rounded-lg shadow-xl space-y-6">
-        <h1 className="text-2xl text-center font-semibold text-blue-500 mb-4">Manage Your CDP</h1>
+      <div className="w-full md:w-1/2 lg:w-2/3 p-8 bg-gray-800 rounded-lg shadow-xl space-y-6">
+        <h1 className="text-4xl text-center font-semibold mb-8 text-purple-500">Manage Your CDP</h1>
 
         {/* New code for tabs */}
         <div className="flex justify-center space-x-4 mb-4">
           <button
             onClick={() => setActiveTab('CDP Management')}
-            className={`py-2 px-4 rounded ${activeTab === 'CDP Management' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400'}`}
+            className={`py-2 px-4 rounded ${activeTab === 'CDP Management' ? 'bg-purple-500 text-white' : 'bg-gray-700 text-gray-400'}`}
           >
             CDP Management
           </button>
           <button
             onClick={() => setActiveTab('Orders')}
-            className={`py-2 px-4 rounded ${activeTab === 'Orders' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400'}`}
+            className={`py-2 px-4 rounded ${activeTab === 'Orders' ? 'bg-purple-500 text-white' : 'bg-gray-700 text-gray-400'}`}
           >
             Orders
           </button>
@@ -105,7 +105,7 @@ const CDPInteraction = () => {
                 <button
                   key={index}
                   onClick={() => handleActionClick(action)}
-                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg transform transition hover:scale-105"
+                  className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded shadow-lg transform transition hover:scale-105"
                 >
                   {action}
                 </button>
@@ -116,7 +116,7 @@ const CDPInteraction = () => {
 
         {activeTab === 'Orders' && (
           <div className="mt-5">
-            <h2 className="text-lg font-semibold tracking-wide text-blue-500 text-center">Orders</h2>
+            <h2 className="text-lg font-semibold tracking-wide text-purple-500 text-center">Orders</h2>
             {cdps.map((cdp, index) => (
               <div key={index} className="bg-gray-700 rounded-md mt-4 p-4">
                 <h3 className="text-lg text-white">Order #{index+1}</h3>
