@@ -2,6 +2,7 @@ import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import React, { useState, useEffect } from "react";
 import { createCDP, createLimitCDP, createNonce, createSOLPDA, getCDPsOnChain, sendDurableTx } from "../logic/chain-call";
 import axios from "axios";
+import BottomBar from "./BottomBar";
 
 const CreateCDPForm = () => {
   const wallet = useAnchorWallet();
@@ -13,14 +14,14 @@ const CreateCDPForm = () => {
   const [limitPrice, setLimitPrice] = useState(0);
   const [loading, setLoading] = useState(false);
   const [limitOrders, setLimitOrders] = useState([]);
+  const [activeTab, setActiveTab] = useState('create');
 
   const onMarket = async () => {
     updateSolRate();
     setActiveButton("Market Price")
   }
 
-  const onLimit = async () => {
-    updateSolRate();
+  const onLimit = () => {
     setActiveButton("Limit Price");
     setLimitPrice(solRate);
   }
@@ -32,7 +33,7 @@ const CreateCDPForm = () => {
     temp.push({ price : Number(limitPrice.toFixed(2)), amount : Number(number), debtRate : Number(slider), nonce : nonce, noncePubkey : noncePubkey, ser : ser });
     setLimitOrders(temp);
     alert("Limit Order Created!");
-  }
+  };
 
   const updateSolRate = async () => {
     const res = await axios.get("https://api.coinbase.com/v2/prices/SOL-USD/spot");
@@ -44,7 +45,7 @@ const CreateCDPForm = () => {
       if(temp[i].price <= solRate) {
         try {
           await sendDurableTx(wallet, temp[i].ser);
-          alert("Limit order executed for the price : ", temp[i].price);
+          alert("Limit order executed!");
           temp.splice(i, 1);
         } catch (error) {
           console.log(error);
@@ -52,7 +53,7 @@ const CreateCDPForm = () => {
       }
     }
     setLimitOrders(temp);
-//    console.log(limitOrders);
+    console.log(limitOrders);
   }
 
   const onCreate = async () => {
@@ -65,47 +66,57 @@ const CreateCDPForm = () => {
       console.log(limitOrders);
       setLoading(false);
     }
-  }
+    setLoading(false);
+  };
 
   useEffect(() => {
     (async () => {
       updateSolRate();
-      const cdps = await getCDPsOnChain(wallet);
-      console.log(cdps);
     })();
-
+    
     const intervalId = setInterval(updateSolRate, 5000);
-
     return () => {
       clearInterval(intervalId);
     }
-
   }, []);
 
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-900 p-10">
-      <div
-        className="p-10 bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl transition-all duration-500 ease-in-out transform"
-      >
-        <h1 className="text-3xl font-semibold mb-5 tracking-wide text-blue-500 text-center">Create CDP</h1>
-        <div className="space-y-8">
-          <label htmlFor="number-input" className="block text-lg font-medium text-gray-300 transition-colors duration-200 ease-in-out">
-            Amount
-            <input
-              type="number"
-              id="number-input"
-              className="p-4 mt-1 block w-full rounded-md bg-gray-700 text-gray-300 border-transparent shadow-md h-12 text-lg transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-blue-500"
-              value={number}
-              min={0.01}
-              step={0.01}
-              onChange={(e) => setNumber(e.target.value)}
-            />
-            <span className="block mt-2 text-sm text-gray-500">
-              Approximately ${(number * solRate).toFixed(2)} USD
-            </span>
-          </label>
+  const Tab = ({ title, active }) => (
+    <button 
+      className={`py-2 px-4 text-white ${active ? 'border-b-2 border-blue-500' : ''}`}
+      onClick={() => setActiveTab(title.toLowerCase())}
+    >
+      {title}
+    </button>
+  );
 
-          <div className="border-t border-gray-600 my-5"></div>
+  return (
+    <>
+    <div className="flex justify-center items-center h-full mb-20 bg-gray-900">
+      <div className="p-10 bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl transition-all duration-500 ease-in-out transform">
+        <h1 className="text-3xl font-semibold mb-5 tracking-wide text-blue-500 text-center">Create CDP</h1>
+        <div className="flex space-x-4 justify-center transition-all duration-500 ease-in-out">
+          <Tab title="Create" active={activeTab === 'create'} />
+          <Tab title="Orders" active={activeTab === 'orders'} />
+        </div>
+        {activeTab === 'create' ? (
+          // The create form code
+          <div className="space-y-8">
+            <label htmlFor="number-input" className="block text-lg font-medium text-gray-300 transition-colors duration-200 ease-in-out">
+              Amount
+              <input
+                type="number"
+                id="number-input"
+                className="p-4 mt-1 block w-full rounded-md bg-gray-700 text-gray-300 border-transparent shadow-md h-12 text-lg transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-blue-500"
+                value={number}
+                min={0.01}
+                step={0.01}
+                onChange={(e) => setNumber(e.target.value)}
+              />
+              <span className="block mt-2 text-sm text-gray-500">
+                Approximately ${(number * solRate).toFixed(2)} USD
+              </span>
+            </label>
+            <div className="border-t border-gray-600 my-5"></div>
 
           {/* Slider Input */}
           <label htmlFor="slider-input" className="block text-lg font-medium text-gray-300 transition-colors duration-200 ease-in-out">
@@ -166,21 +177,62 @@ const CreateCDPForm = () => {
           </label>
 
           <div className="border-t border-gray-600 my-5"></div>
-
-          {/* Submit Button */}
-          <div className="pt-5">
-            <div className="flex justify-center">
-              <button
-                className="w-1/2 bg-opacity-40 bg-gray-600 border-gray-700 border-4 hover:border-blue-700 text-xl inline-flex justify-center py-2 px-4 border-transparent shadow-2xl font-medium rounded-full text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ease-in-out hover:shadow-3xl transform hover:-translate-y-1"
-                onClick={onCreate}
-              >
-                { loading ? "Loading.." :  "Create" }
-              </button>
+          <div className="flex items-center justify-center">
+            <button
+              type="button"
+              className={`flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white ${
+                loading ? "bg-gray-700" : "bg-blue-600 hover:bg-blue-700"
+              }`}
+              disabled={loading}
+              onClick={onCreate}
+            >
+              {loading ? (
+                <>
+                <div className="animate-spin mr-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    className="h-5 w-5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                </div>
+                <span>Loading</span>
+                </>
+              ) : (
+                "Create CDP"
+              )}
+            </button>
             </div>
           </div>
-        </div>
+        ) : (
+          <>
+          { limitOrders.length == 0 ? (<div className="block text-lg font-medium text-gray-300 transition-colors duration-200 ease-in-out">No Active Limit Orders</div>) 
+          : 
+          <div className="mt-5">
+            {limitOrders.map((limit, index) => (
+              <div key={index} className="bg-gray-700 rounded-md mt-4 p-4">
+                <p className="text-white mt-2">Amount: {limit.amount}</p>
+                <p className="text-white">Price: {limit.price}</p>
+                <p className="text-white">Debt Rate: {limit.debtRate}</p>
+                <p className="text-white">Nonce: {limit.nonce}</p>
+              </div>
+            ))}
+          </div>
+          }
+          </>
+        )}
       </div>
     </div>
+    <BottomBar solPrice={solRate}/>
+    </>
   );
 };
 

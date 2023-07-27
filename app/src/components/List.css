@@ -1,0 +1,22 @@
+.cdp-card {
+    width: calc(25% - 1rem);
+  }
+  
+  .cdp-card:hover {
+    transition: all;
+    animation-duration: 500;
+  }
+  
+  @media (max-width: 768px) {
+    .cdp-card {
+      width: calc(50% - 1rem);
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .cdp-card {
+      width: 100%;
+    }
+  }
+  
+ 

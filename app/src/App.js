@@ -3,11 +3,15 @@ import Navbar from './components/Navbar';
 import CreateCDPForm from './components/Create';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { clusterApiUrl } from '@solana/web3.js';
 import { useMemo } from 'react';
 import * as buffer from "buffer";
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
+import BottomBar from './components/BottomBar';
+import CDPInteraction from './components/CDPInteraction';
+import List from './components/List';
 
 require('@solana/wallet-adapter-react-ui/styles.css');
 
@@ -17,10 +21,16 @@ function App() {
 
   return (
     <div className="App">
-      <Navbar />
-      <main>
-        <CreateCDPForm />
-      </main>
+      <BrowserRouter>
+        <Navbar />
+          <main>
+          <Routes>
+            <Route path='/create' element={<CreateCDPForm />} />
+            <Route path='/list' element={<List />} />
+            <Route path='/interact/:pubkey' element={<CDPInteraction />} />
+          </Routes>
+          </main>
+      </BrowserRouter>
     </div>
   );
 }

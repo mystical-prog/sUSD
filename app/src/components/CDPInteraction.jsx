@@ -1,109 +1,164 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
+import Modal from "./Modal";
+import { useParams } from "react-router-dom";
+import { getSpecificCDP } from "../logic/chain-call";
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+
+const FORM_CONFIGS = {
+  'Issue CDP': [
+    { type: 'text', name: 'field1', label: 'Field 1', required: true },
+  ],
+  'Add CDP': [
+    { type: 'toggle', name: 'marketPrice', label: 'Market Price' },
+    { type: 'toggle', name: 'limitPrice', label: 'Limit Price' },
+  ],
+  'Close CDP': [
+    { type: 'toggle', name: 'marketPrice', label: 'Market Price' },
+    { type: 'toggle', name: 'limitPrice', label: 'Limit Price' },
+  ],
+  'Remove CKBTC': [
+    { type: 'text', name: 'field1', label: 'Field 1', required: true },
+  ],
+  'Repay CKBTC': [
+    { type: 'text', name: 'field1', label: 'Field 1', required: true },
+  ],
+  'Adjust Safemint Rate': [
+    { type: 'slider', name: 'safemintRate', label: 'Safemint Rate', min: 100, max: 200 },
+  ],
+};
 
 const CDPInteraction = () => {
-  // Initialize dummy data for the component.
-  const CDPDetails = {
-    entry_rate: '1.00',
-    liquidation_rate: '2.00',
-    amount: '1000',
-    safemint_rate: '0.50',
-    max_issuable_debt: '2000',
-    issued_debt: '500',
-    volume: '10000'
-  };
+  const {pubkey} = useParams();
+  const wallet = useAnchorWallet();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [activeAction, setActiveAction] = useState(null);
+  const [activeTab, setActiveTab] = useState('CDP Management');  // new state for active tab
 
-  const tabs = [
-    { name: 'Issue', fieldLabel: 'Amount', btnText: 'Issue', func: () => console.log('Clicked Issue IRSC') },
-    { name: 'Repay', fieldLabel: 'Amount', btnText: 'Repay', func: () => console.log('Clicked Repay IRSC') },
-    { name: 'Add ckBTC', fieldLabel: 'Amount', btnText: 'Add', func: () => console.log('Clicked Add ckBTC') },
-    { name: 'Remove ckBTC', fieldLabel: 'Amount', btnText: 'Remove', func: () => console.log('Clicked Remove ckBTC') },
-    { name: 'Close CDP', btnText: 'Close', func: () => console.log('Clicked Close CDP') },
-    { name: 'Adjust Safemint', fieldLabel: 'Safemint', btnText: 'Adjust', isSlider: true, func: () => console.log('Clicked Adjust Safemint') },
-    // Fill other tabs as required...
+  const actions = [
+    "Issue CDP", "Add CDP", "Close CDP", "Remove CKBTC", "Adjust Safemint Rate", "Repay CKBTC"
   ];
 
-  const [activeTab, setActiveTab] = useState(tabs[0]);
-  const [sliderInput, setSliderInput] = useState(137);
-  const [numberInput, setNumberInput] = useState(0.0001);
-  const [loaded, setLoaded] = useState(true);
+  useEffect(() => {
+    (async () => {
+      const cdp = await getSpecificCDP(wallet, pubkey);
+      setInfo([
+        { title: 'Entry Rate', value: Number(Number(cdp.entryPrice) * 10 / LAMPORTS_PER_SOL).toFixed(2)},
+        { title: 'Liquidation Rate', value: Number(Number(cdp.liquidationPrice) * 10 / LAMPORTS_PER_SOL).toFixed(2) },
+        { title: 'Amount', value: Number(cdp.amount) * LAMPORTS_PER_SOL/ 10**11 },
+        { title: 'Safemint Rate', value: Number(cdp.debtPercent) / 100 },
+        { title: 'Max Issuable Debt', value: Number(Number(cdp.maxDebt) / 10**6).toFixed(2) },
+        { title: 'Issued Debt', value: Number(Number(cdp.usedDebt) / 10**6).toFixed(2) },
+        { title: 'Volume', value: Number(cdp.amount) * LAMPORTS_PER_SOL/ 10**11 },
+      ])
+      console.log(cdp);
+    })();
+  }, []);
 
-  const handleSliderChange = (event) => {
-    setSliderInput(event.target.value);
-  }
+  const handleActionClick = (action) => {
+    setActiveAction(action);
+    setModalOpen(true);
+  };
 
-  const handleNumberChange = (event) => {
-    setNumberInput(event.target.value);
-  }
+  const handleFormSubmit = (formData) => {
+    console.log(formData);
+    setModalOpen(false);
+  };
+
+  const [info, setInfo] = useState([
+    { title: 'Entry Rate', value: '1.23' },
+    { title: 'Liquidation Rate', value: '2.34' },
+    { title: 'Amount', value: '1000' },
+    { title: 'Safemint Rate', value: '4.56' },
+    { title: 'Max Issuable Debt', value: '5000' },
+    { title: 'Issued Debt', value: '3000' },
+    { title: 'Volume', value: '7000' },
+  ]);
+
+  const [cdps, setCdps] = useState([
+    {amount: 100, price: 50, debtRate: 5, nonce: 1234567890},
+    {amount: 200, price: 45, debtRate: 10, nonce: 2345678901},
+    {amount: 150, price: 55, debtRate: 7, nonce: 3456789012}
+  ]);
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-900 p-10">
-      <div
-        className="flex flex-row bg-gray-800 rounded-xl shadow-2xl w-full transition-all duration-500 ease-in-out transform h-full"
-      >
-        {/* Left Side */}
-        <div className="flex flex-col w-1/2 pr-4 items-center border-r-2 border-gray-600 p-10">
-          <h2 className="text-center text-3xl font-medium text-blue-500 mb-6">Details</h2>
-          {Object.entries(CDPDetails).map(([key, value]) => (
-            <div key={key} className="flex justify-between w-3/4 mb-3 text-xl font-medium text-gray-300 transition-colors duration-200 ease-in-out">
-              <span className="capitalize">{key.replace('_', ' ')}:</span>
-              <span>{value}</span>
-            </div>
-          ))}
+    <div className="flex justify-center items-center h-full my-8 bg-gray-900">
+      <div className="w-full md:w-1/2 lg:w-2/3 p-8 bg-gray-800 rounded-lg shadow-xl space-y-6">
+        <h1 className="text-4xl text-center font-semibold mb-8 text-purple-500">Manage Your CDP</h1>
+
+        {/* New code for tabs */}
+        <div className="flex justify-center space-x-4 mb-4">
+          <button
+            onClick={() => setActiveTab('CDP Management')}
+            className={`py-2 px-4 rounded ${activeTab === 'CDP Management' ? 'bg-purple-500 text-white' : 'bg-gray-700 text-gray-400'}`}
+          >
+            CDP Management
+          </button>
+          <button
+            onClick={() => setActiveTab('Orders')}
+            className={`py-2 px-4 rounded ${activeTab === 'Orders' ? 'bg-purple-500 text-white' : 'bg-gray-700 text-gray-400'}`}
+          >
+            Orders
+          </button>
         </div>
 
-        {/* Right Side */}
-        <div className="flex flex-col w-1/2 pl-4 items-center p-10">
-          <h2 className="text-center text-3xl font-medium text-blue-500 mb-6">Interaction</h2>
-          <div className="flex space-x-2 overflow-x-auto whitespace-nowrap justify-center w-full mb-6">
-            {tabs.map((tab) => (
-              <button
-                key={tab.name}
-                className={`px-4 py-2 rounded-md bg-opacity-40 ${activeTab.name === tab.name ? 'bg-blue-500 border-blue-900' : 'bg-gray-600'} border-gray-700 border-4 hover:border-blue-700 text-white text-lg font-medium transition-colors duration-200 ease-in-out shadow-md hover:bg-blue-500`}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab.name}
-              </button>
+        {activeTab === 'CDP Management' && (
+          <>
+            <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+              <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                  <tr>
+                    <th scope="col" className="px-6 py-3">Title</th>
+                    <th scope="col" className="px-6 py-3">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {info.map((item, index) => (
+                    <tr className={`${index % 2 === 0 ? 'bg-gray-900' : 'bg-gray-800'} border-b dark:border-gray-700`}>
+                      <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">{item.title}</th>
+                      <td className="px-6 py-4">{item.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex justify-between space-x-4">
+              {actions.map((action, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleActionClick(action)}
+                  className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded shadow-lg transform transition hover:scale-105"
+                >
+                  {action}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {activeTab === 'Orders' && (
+          <div className="mt-5">
+            <h2 className="text-lg font-semibold tracking-wide text-purple-500 text-center">Orders</h2>
+            {cdps.map((cdp, index) => (
+              <div key={index} className="bg-gray-700 rounded-md mt-4 p-4">
+                <h3 className="text-lg text-white">Order #{index+1}</h3>
+                <p className="text-white mt-2">Amount: {cdp.amount}</p>
+                <p className="text-white">Price: {cdp.price}</p>
+                <p className="text-white">Debt Rate: {cdp.debtRate}</p>
+                <p className="text-white">Nonce: {cdp.nonce}</p>
+              </div>
             ))}
           </div>
-          <div className="mt-4 w-full flex flex-col items-center">
-            {activeTab.fieldLabel && (
-              <div className="w-2/3 flex flex-col mb-3">
-                <label className="mb-3 mt-3 text-gray-300 font-bold">{activeTab.fieldLabel} :</label>
-                {activeTab.isSlider ? (
-                  <>
-                      <input 
-                          className="shadow bg-background h-1.5 w-full border cursor-pointer appearance-none rounded-lg"
-                          id="slider-input" 
-                          type="range" 
-                          min="137" 
-                          max="160"
-                          step="1"
-                          value={sliderInput}
-                          onChange={handleSliderChange}
-                      />
-                      <div className="flex justify-between text-sm text-gray-300 mt-2 font-bold">
-                          <span>Min: 137%</span>
-                          <span>Current: {sliderInput}%</span>
-                          <span>Max: 160%</span>
-                      </div>
-                  </>
-                ) : (
-                  <input 
-                      className="shadow appearance-none bg-gray-700 border rounded w-full py-2 px-3 text-gray-300 font-bold leading-tight focus:outline-none focus:shadow-outline" 
-                      id="number-input" 
-                      type="number"
-                      min={0.0001}
-                      step={0.0001}
-                      placeholder='0.0001'
-                      value={numberInput}
-                      onChange={handleNumberChange} 
-                  />
-                )}
-              </div>
-            )}
-            <button className="px-4 py-2 rounded-lg bg-gray-700 text-white" onClick={activeTab.func}>{loaded ? activeTab.btnText : "Loading.."}</button>
-          </div>
-        </div>
+        )}
+
+        {modalOpen && activeAction && (
+          <Modal
+            action={activeAction}
+            fields={FORM_CONFIGS[activeAction]}
+            onClose={() => setModalOpen(false)}
+            onSubmit={handleFormSubmit}
+          />
+        )}
       </div>
     </div>
   );

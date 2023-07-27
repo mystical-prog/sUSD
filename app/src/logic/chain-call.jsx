@@ -69,6 +69,17 @@ export const getCDPsOnChain = async (wallet) => {
     return temp_cdps;
 }
 
+export const getSpecificCDP = async (wallet, addr) => {
+  const provider = getProvider(wallet);
+  if(!provider) {
+    throw("Provider is null");
+  }
+  const temp = JSON.parse(JSON.stringify(idl));
+  const program = new anchor.Program(temp, temp.metadata.address, provider);
+  const cdp = await program.account.cdp.fetch(addr);
+  return cdp;
+}
+
 export const createSOLPDA = async (wallet) => {
     const provider = getProvider(wallet);
     if(!provider) {
