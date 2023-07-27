@@ -1,10 +1,11 @@
-import { useAnchorWallet } from "@solana/wallet-adapter-react";
+import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import React, { useState, useEffect } from "react";
-import { createCDP, createSOLPDA, getCDPsOnChain } from "../logic/chain-call";
-import axios from "axios"
+import { createCDP, createLimitCDP, createNonce, createSOLPDA, getCDPsOnChain, sendDurableTx } from "../logic/chain-call";
+import axios from "axios";
 
 const CreateCDPForm = () => {
   const wallet = useAnchorWallet();
+  const { publicKey, signTransaction } = useWallet();
   const [number, setNumber] = useState(0.01);
   const [slider, setSlider] = useState(140);
   const [activeButton, setActiveButton] = useState("Market Price");
@@ -18,15 +19,34 @@ const CreateCDPForm = () => {
     setActiveButton("Market Price")
   }
 
-  const handleLimitOrder = () => {
+  const handleLimitOrder = async () => {
     let temp = limitOrders;
-    temp.push({ price : Number(limitPrice.toFixed(2)), amount : Number(number), debtRate : Number(slider) });
+    const [noncePubkey, nonce] = await createNonce(wallet);
+    const ser = await createLimitCDP(wallet, Number(number), Number(slider * 100), noncePubkey, nonce, publicKey, signTransaction);
+    temp.push({ price : Number(limitPrice.toFixed(2)), amount : Number(number), debtRate : Number(slider), nonce : nonce, noncePubkey : noncePubkey, ser : ser });
     setLimitOrders(temp);
+    alert("Limit Order Created!");
   }
 
   const updateSolRate = async () => {
     const res = await axios.get("https://api.coinbase.com/v2/prices/SOL-USD/spot");
     setRate(Number(res.data.data.amount).toFixed(2));
+
+    let temp = limitOrders;
+    
+    for(const i in temp){
+      if(temp[i].price <= solRate) {
+        try {
+          await sendDurableTx(wallet, temp[i].ser);
+          alert("Limit order executed for the price : ", temp[i].price);
+          temp.splice(i, 1);
+        } catch (error) {
+          console.log(error);
+        }
+      }
+    }
+    setLimitOrders(temp);
+    console.log(limitOrders);
   }
 
   const onCreate = async () => {
@@ -35,7 +55,7 @@ const CreateCDPForm = () => {
       await createCDP(wallet, number, (slider*100));
       setLoading(false);
     } else {
-      handleLimitOrder();
+      await handleLimitOrder();
       console.log(limitOrders);
       setLoading(false);
     }
@@ -63,7 +83,6 @@ const CreateCDPForm = () => {
       >
         <h1 className="text-3xl font-semibold mb-5 tracking-wide text-blue-500 text-center">Create CDP</h1>
         <div className="space-y-8">
-          {/* Number Input */}
           <label htmlFor="number-input" className="block text-lg font-medium text-gray-300 transition-colors duration-200 ease-in-out">
             Amount
             <input

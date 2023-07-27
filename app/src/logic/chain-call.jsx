@@ -2,8 +2,41 @@ import * as anchor from "@project-serum/anchor";
 import idl from "./s_usd.json";
 import * as web3 from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@project-serum/anchor/dist/cjs/utils/token";
+import * as bs58 from "bs58";
 
 const sol_usd_price_account = new anchor.web3.PublicKey("J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix");
+
+const nonceAuthKP = web3.Keypair.fromSecretKey(new Uint8Array([229,75,151,149,149,182,138,167,29,196,38,249,151,71,63,12,180,231,8,6,22,151,32,34,154,84,139,115,197,32,170,61,13,91,137,246,12,29,167,216,129,141,250,60,201,31,110,162,204,131,95,241,192,250,96,94,120,52,199,24,43,6,77,234]));
+
+export const createNonce = async (wallet) => {
+    const provider = getProvider(wallet);
+    if(!provider) {
+      throw("Provider is null");
+    }
+    const nonceKeypair = anchor.web3.Keypair.generate();
+    const tx = new web3.Transaction();
+    tx.feePayer = nonceAuthKP.publicKey;
+    tx.recentBlockhash = (await provider.connection.getLatestBlockhash()).blockhash;
+    tx.add(
+        web3.SystemProgram.createAccount({
+          fromPubkey: nonceAuthKP.publicKey,
+          newAccountPubkey: nonceKeypair.publicKey,
+          lamports: 0.0015 * web3.LAMPORTS_PER_SOL,
+          space: web3.NONCE_ACCOUNT_LENGTH,
+          programId: web3.SystemProgram.programId,
+        }),
+        web3.SystemProgram.nonceInitialize({
+          noncePubkey: nonceKeypair.publicKey,
+          authorizedPubkey: nonceAuthKP.publicKey,
+        })
+    );
+    tx.sign(nonceKeypair, nonceAuthKP);
+    const sig = await web3.sendAndConfirmRawTransaction(provider.connection, tx.serialize({requireAllSignatures: false}));
+    console.log("Nonces initiated: ", sig);
+    let accountInfo = await provider.connection.getAccountInfo(nonceKeypair.publicKey);
+    let nonce = web3.NonceAccount.fromAccountData(accountInfo.data);
+    return [nonceKeypair.publicKey, nonce.nonce];
+}
 
 export const getProvider = (wallet) => {
 
@@ -51,6 +84,45 @@ export const createSOLPDA = async (wallet) => {
     .rpc();
 }
 
+export const createLimitCDP = async (wallet, amount, debtPercent, noncePubKey, nonce, key, signTransaction) => {
+    const provider = getProvider(wallet);
+    if(!provider) {
+      throw("Provider is null");
+    }
+    const temp = JSON.parse(JSON.stringify(idl));
+    const program = new anchor.Program(temp, temp.metadata.address, provider);
+    const new_cdp = anchor.web3.Keypair.generate();
+    const [solPDA, solPDABump] = anchor.web3.PublicKey.findProgramAddressSync(
+        [provider.wallet.publicKey.toBuffer()],
+        program.programId
+    );
+    const ix = program.instruction.createCdp(new anchor.BN(amount * web3.LAMPORTS_PER_SOL), new anchor.BN(debtPercent), {
+      accounts : {
+        newCdp : new_cdp.publicKey,
+        solPda : solPDA,
+        signer : provider.wallet.publicKey,
+        solUsdPriceAccount : sol_usd_price_account,
+        systemProgram : anchor.web3.SystemProgram.programId
+      }
+    });
+
+    const advanceIX = web3.SystemProgram.nonceAdvance({
+        authorizedPubkey: nonceAuthKP.publicKey,
+        noncePubkey: noncePubKey
+    })
+
+    const tx = new web3.Transaction();
+    tx.add(advanceIX);
+    tx.add(ix);
+    tx.recentBlockhash = nonce;
+    tx.feePayer = key;
+    tx.sign(nonceAuthKP, new_cdp);
+    const signedtx = await signTransaction(tx);
+    const serialisedTx = signedtx.serialize({requireAllSignatures: false});
+    console.log(serialisedTx);
+    return serialisedTx;
+}
+
 export const createCDP = async (wallet, amount, debtPercent) => {
     const provider = getProvider(wallet);
     if(!provider) {
@@ -80,4 +152,13 @@ export const createCDP = async (wallet, amount, debtPercent) => {
         console.log(error);
         alert(error);
     }
-}   
+}
+
+export const sendDurableTx = async (wallet, rawTx) => {
+  const provider = getProvider(wallet);
+  if(!provider) {
+    throw("Provider is null");
+  }
+  const sig = await provider.connection.sendRawTransaction(rawTx);
+  console.log("Sent durable transaction: ", sig);
+}
