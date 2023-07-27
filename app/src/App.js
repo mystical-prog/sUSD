@@ -8,6 +8,8 @@ import { useMemo } from 'react';
 import * as buffer from "buffer";
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
+import BottomBar from './components/BottomBar';
+import CDPInteraction from './components/CDPInteraction';
 
 require('@solana/wallet-adapter-react-ui/styles.css');
 
@@ -19,7 +21,8 @@ function App() {
     <div className="App">
       <Navbar />
       <main>
-        <CreateCDPForm />
+        <CDPInteraction />
+        <BottomBar />
       </main>
     </div>
   );
