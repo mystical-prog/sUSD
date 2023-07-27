@@ -19,6 +19,12 @@ const CreateCDPForm = () => {
     setActiveButton("Market Price")
   }
 
+  const onLimit = async () => {
+    updateSolRate();
+    setActiveButton("Limit Price");
+    setLimitPrice(solRate);
+  }
+
   const handleLimitOrder = async () => {
     let temp = limitOrders;
     const [noncePubkey, nonce] = await createNonce(wallet);
@@ -46,7 +52,7 @@ const CreateCDPForm = () => {
       }
     }
     setLimitOrders(temp);
-    console.log(limitOrders);
+//    console.log(limitOrders);
   }
 
   const onCreate = async () => {
@@ -132,7 +138,7 @@ const CreateCDPForm = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setActiveButton("Limit Price")}
+                onClick={onLimit}
                 className={`flex-1 py-2 rounded-full bg-opacity-40 ${activeButton === 'Limit Price' ? 'bg-green-500 border-green-900' : 'bg-gray-600'} border-gray-700 border-4 hover:border-green-700 backdrop-blur text-white text-lg font-medium transition-colors duration-200 ease-in-out shadow-md hover:bg-green-500`}
               >
                 Limit Price
