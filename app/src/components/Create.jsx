@@ -2,6 +2,7 @@ import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import React, { useState, useEffect } from "react";
 import { createCDP, createLimitCDP, createNonce, createSOLPDA, getCDPsOnChain, sendDurableTx } from "../logic/chain-call";
 import axios from "axios";
+import BottomBar from "./BottomBar";
 
 const CreateCDPForm = () => {
   const wallet = useAnchorWallet();
@@ -15,17 +16,15 @@ const CreateCDPForm = () => {
   const [limitOrders, setLimitOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('create');
 
-  // Dummy CDPs
-  const [cdps, setCdps] = useState([
-    {amount: 100, price: 50, debtRate: 5, nonce: 1234567890},
-    {amount: 200, price: 45, debtRate: 10, nonce: 2345678901},
-    {amount: 150, price: 55, debtRate: 7, nonce: 3456789012}
-  ]);
-
   const onMarket = async () => {
     updateSolRate();
-    setActiveButton("Market Price");
-  };
+    setActiveButton("Market Price")
+  }
+
+  const onLimit = () => {
+    setActiveButton("Limit Price");
+    setLimitPrice(solRate);
+  }
 
   const handleLimitOrder = async () => {
     let temp = limitOrders;
@@ -46,7 +45,7 @@ const CreateCDPForm = () => {
       if(temp[i].price <= solRate) {
         try {
           await sendDurableTx(wallet, temp[i].ser);
-          alert("Limit order executed for the price : ", temp[i].price);
+          alert("Limit order executed!");
           temp.splice(i, 1);
         } catch (error) {
           console.log(error);
@@ -55,7 +54,7 @@ const CreateCDPForm = () => {
     }
     setLimitOrders(temp);
     console.log(limitOrders);
-  };
+  }
 
   const onCreate = async () => {
     setLoading(true);
@@ -67,9 +66,14 @@ const CreateCDPForm = () => {
       console.log(limitOrders);
       setLoading(false);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
+    (async () => {
+      updateSolRate();
+    })();
+    
     const intervalId = setInterval(updateSolRate, 5000);
     return () => {
       clearInterval(intervalId);
@@ -86,7 +90,8 @@ const CreateCDPForm = () => {
   );
 
   return (
-    <div className="flex justify-center items-center h-full my-28 bg-gray-900">
+    <>
+    <div className="flex justify-center items-center h-full mb-20 bg-gray-900">
       <div className="p-10 bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl transition-all duration-500 ease-in-out transform">
         <h1 className="text-4xl text-center font-semibold mb-8 text-purple-500 tracking-wide">Create CDP</h1>
         <div className="flex space-x-4 justify-center transition-all duration-500 ease-in-out">
@@ -144,7 +149,7 @@ const CreateCDPForm = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setActiveButton("Limit Price")}
+                onClick={onLimit}
                 className={`flex-1 py-2 rounded-full bg-opacity-40 ${activeButton === 'Limit Price' ? 'bg-green-500 border-green-900' : 'bg-gray-600'} border-gray-700 border-4 hover:border-green-700 backdrop-blur text-white text-lg font-medium transition-colors duration-200 ease-in-out shadow-md hover:bg-green-500`}
               >
                 Limit Price
@@ -182,6 +187,7 @@ const CreateCDPForm = () => {
               onClick={onCreate}
             >
               {loading ? (
+                <>
                 <div className="animate-spin mr-3">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -198,6 +204,8 @@ const CreateCDPForm = () => {
                     />
                   </svg>
                 </div>
+                <span>Loading</span>
+                </>
               ) : (
                 "Create CDP"
               )}
@@ -205,21 +213,26 @@ const CreateCDPForm = () => {
             </div>
           </div>
         ) : (
+          <>
+          { limitOrders.length == 0 ? (<div className="block text-lg font-medium text-gray-300 transition-colors duration-200 ease-in-out">No Active Limit Orders</div>) 
+          : 
           <div className="mt-5">
-            <h2 className="text-lg font-semibold tracking-wide text-purple-500 text-center">Orders</h2>
-            {cdps.map((cdp, index) => (
+            {limitOrders.map((limit, index) => (
               <div key={index} className="bg-gray-700 rounded-md mt-4 p-4">
-                <h3 className="text-lg text-white">Order #{index+1}</h3>
-                <p className="text-white mt-2">Amount: {cdp.amount}</p>
-                <p className="text-white">Price: {cdp.price}</p>
-                <p className="text-white">Debt Rate: {cdp.debtRate}</p>
-                <p className="text-white">Nonce: {cdp.nonce}</p>
+                <p className="text-white mt-2">Amount: {limit.amount}</p>
+                <p className="text-white">Price: {limit.price}</p>
+                <p className="text-white">Debt Rate: {limit.debtRate}</p>
+                <p className="text-white">Nonce: {limit.nonce}</p>
               </div>
             ))}
           </div>
+          }
+          </>
         )}
       </div>
     </div>
+    <BottomBar solPrice={solRate}/>
+    </>
   );
 };
 

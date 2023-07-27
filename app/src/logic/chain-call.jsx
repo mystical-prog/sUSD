@@ -2,7 +2,7 @@ import * as anchor from "@project-serum/anchor";
 import idl from "./s_usd.json";
 import * as web3 from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@project-serum/anchor/dist/cjs/utils/token";
-import * as bs58 from "bs58";
+import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 
 const sol_usd_price_account = new anchor.web3.PublicKey("J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix");
 
@@ -60,7 +60,24 @@ export const getCDPsOnChain = async (wallet) => {
     const temp = JSON.parse(JSON.stringify(idl));
     const program = new anchor.Program(temp, temp.metadata.address, provider);
     const cDPsOnChain = await program.account.cdp.all();
-    return cDPsOnChain;
+    let temp_cdps = [];
+    for(const i in cDPsOnChain) {
+      if(cDPsOnChain[i].account.debtor.toBase58() == provider.wallet.publicKey) {
+        temp_cdps.push(cDPsOnChain[i]);
+      }
+    }
+    return temp_cdps;
+}
+
+export const getSpecificCDP = async (wallet, addr) => {
+  const provider = getProvider(wallet);
+  if(!provider) {
+    throw("Provider is null");
+  }
+  const temp = JSON.parse(JSON.stringify(idl));
+  const program = new anchor.Program(temp, temp.metadata.address, provider);
+  const cdp = await program.account.cdp.fetch(addr);
+  return cdp;
 }
 
 export const createSOLPDA = async (wallet) => {
@@ -161,4 +178,96 @@ export const sendDurableTx = async (wallet, rawTx) => {
   }
   const sig = await provider.connection.sendRawTransaction(rawTx);
   console.log("Sent durable transaction: ", sig);
+}
+
+export const addCollateralTx = async (wallet, amount, cdp) => {
+  const provider = getProvider(wallet);
+  if(!provider) {
+    throw("Provider is null");
+  }
+  const temp = JSON.parse(JSON.stringify(idl));
+  const program = new anchor.Program(temp, temp.metadata.address, provider);
+  const [solPDA, solPDABump] = anchor.web3.PublicKey.findProgramAddressSync(
+    [provider.wallet.publicKey.toBuffer()],
+    program.programId
+  );
+  try {
+    const tx = await program.methods.addCollateral(new anchor.BN(amount * web3.LAMPORTS_PER_SOL))
+    .accounts({
+      cdp : cdp,
+      signer : provider.wallet.publicKey,
+      solPda : solPDA,
+      solUsdPriceAccount : sol_usd_price_account,
+      systemProgram : anchor.web3.SystemProgram.programId
+    })
+    .signers([])
+    .rpc();
+    alert("Added Collateral - ", tx);
+    console.log(tx);
+  } catch (error) {
+    console.log(error);
+    alert(error);
+  }
+}
+
+export const removeCollateralTx = async (wallet, amount, cdp) => {
+  const provider = getProvider(wallet);
+  if(!provider) {
+    throw("Provider is null");
+  }
+  const temp = JSON.parse(JSON.stringify(idl));
+  const program = new anchor.Program(temp, temp.metadata.address, provider);
+  const [solPDA, solPDABump] = anchor.web3.PublicKey.findProgramAddressSync(
+    [provider.wallet.publicKey.toBuffer()],
+    program.programId
+  );
+  try {
+    const tx = await program.methods.removeCollateral(new anchor.BN(amount * web3.LAMPORTS_PER_SOL))
+    .accounts({
+      cdp : cdp,
+      signer : provider.wallet.publicKey,
+      solPda : solPDA,
+      solUsdPriceAccount : sol_usd_price_account,
+      systemProgram : anchor.web3.SystemProgram.programId
+    })
+    .signers([])
+    .rpc();
+    alert("Removed Collateral - ", tx);
+    console.log(tx);
+  } catch (error) {
+    console.log(error);
+    alert(error);
+  }
+}
+
+export const issueSUSDTx = async (wallet, amount, cdp) => {
+  const provider = getProvider(wallet);
+  if(!provider) {
+    throw("Provider is null");
+  }
+  const temp = JSON.parse(JSON.stringify(idl));
+  const program = new anchor.Program(temp, temp.metadata.address, provider);
+  const [susd, susdBump] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("susd")],
+    program.programId
+  );
+  const singer_susd = await getOrCreateAssociatedTokenAccount(provider.connection, nonceAuthKP, susd, provider.wallet.publicKey);
+  try {
+    const tx = await program.methods.issueSusd(new anchor.BN(amount * 1000000), susdBump)
+    .accounts({
+      cdp : cdp,
+      signer : provider.wallet.publicKey,
+      susdMint : susd,
+      signerSusd : singer_susd.address,
+      tokenProgram : TOKEN_PROGRAM_ID,
+      systemProgram : anchor.web3.SystemProgram.programId
+    })
+    .signers([])
+    .rpc();
+    alert("Issued SUSD - ", tx);
+    console.log(tx);
+  } catch (error) {
+    console.log(error);
+    alert(error);
+  }
 }

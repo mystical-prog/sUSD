@@ -1,5 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Modal from "./Modal";
+import { useParams } from "react-router-dom";
+import { getSpecificCDP } from "../logic/chain-call";
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 const FORM_CONFIGS = {
   'Issue CDP': [
@@ -25,6 +29,8 @@ const FORM_CONFIGS = {
 };
 
 const CDPInteraction = () => {
+  const {pubkey} = useParams();
+  const wallet = useAnchorWallet();
   const [modalOpen, setModalOpen] = useState(false);
   const [activeAction, setActiveAction] = useState(null);
   const [activeTab, setActiveTab] = useState('CDP Management');  // new state for active tab
@@ -32,6 +38,22 @@ const CDPInteraction = () => {
   const actions = [
     "Issue CDP", "Add CDP", "Close CDP", "Remove CKBTC", "Adjust Safemint Rate", "Repay CKBTC"
   ];
+
+  useEffect(() => {
+    (async () => {
+      const cdp = await getSpecificCDP(wallet, pubkey);
+      setInfo([
+        { title: 'Entry Rate', value: Number(Number(cdp.entryPrice) * 10 / LAMPORTS_PER_SOL).toFixed(2)},
+        { title: 'Liquidation Rate', value: Number(Number(cdp.liquidationPrice) * 10 / LAMPORTS_PER_SOL).toFixed(2) },
+        { title: 'Amount', value: Number(cdp.amount) * LAMPORTS_PER_SOL/ 10**11 },
+        { title: 'Safemint Rate', value: Number(cdp.debtPercent) / 100 },
+        { title: 'Max Issuable Debt', value: Number(Number(cdp.maxDebt) / 10**6).toFixed(2) },
+        { title: 'Issued Debt', value: Number(Number(cdp.usedDebt) / 10**6).toFixed(2) },
+        { title: 'Volume', value: Number(cdp.amount) * LAMPORTS_PER_SOL/ 10**11 },
+      ])
+      console.log(cdp);
+    })();
+  }, []);
 
   const handleActionClick = (action) => {
     setActiveAction(action);
@@ -43,7 +65,7 @@ const CDPInteraction = () => {
     setModalOpen(false);
   };
 
-  const info = [
+  const [info, setInfo] = useState([
     { title: 'Entry Rate', value: '1.23' },
     { title: 'Liquidation Rate', value: '2.34' },
     { title: 'Amount', value: '1000' },
@@ -51,7 +73,7 @@ const CDPInteraction = () => {
     { title: 'Max Issuable Debt', value: '5000' },
     { title: 'Issued Debt', value: '3000' },
     { title: 'Volume', value: '7000' },
-  ];
+  ]);
 
   const [cdps, setCdps] = useState([
     {amount: 100, price: 50, debtRate: 5, nonce: 1234567890},
