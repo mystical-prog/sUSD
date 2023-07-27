@@ -82,7 +82,7 @@ const CreateCDPForm = () => {
 
   const Tab = ({ title, active }) => (
     <button 
-      className={`py-2 px-4 text-white ${active ? 'border-b-2 border-blue-500' : ''}`}
+      className={`py-2 px-4 text-white ${active ? 'border-b-2 border-purple-500' : ''}`}
       onClick={() => setActiveTab(title.toLowerCase())}
     >
       {title}
@@ -93,7 +93,7 @@ const CreateCDPForm = () => {
     <>
     <div className="flex justify-center items-center h-full mb-20 bg-gray-900">
       <div className="p-10 bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl transition-all duration-500 ease-in-out transform">
-        <h1 className="text-3xl font-semibold mb-5 tracking-wide text-blue-500 text-center">Create CDP</h1>
+        <h1 className="text-4xl text-center font-semibold mb-8 text-purple-500 tracking-wide">Create CDP</h1>
         <div className="flex space-x-4 justify-center transition-all duration-500 ease-in-out">
           <Tab title="Create" active={activeTab === 'create'} />
           <Tab title="Orders" active={activeTab === 'orders'} />
@@ -106,7 +106,7 @@ const CreateCDPForm = () => {
               <input
                 type="number"
                 id="number-input"
-                className="p-4 mt-1 block w-full rounded-md bg-gray-700 text-gray-300 border-transparent shadow-md h-12 text-lg transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-blue-500"
+                className="p-4 mt-1 block w-full rounded-md bg-gray-700 text-gray-300 border-transparent shadow-md h-12 text-lg transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-purple-500"
                 value={number}
                 min={0.01}
                 step={0.01}
@@ -131,7 +131,7 @@ const CreateCDPForm = () => {
               max="160"
               step={0.01}
               id="slider-input"
-              className="mt-1 block w-full rounded-full bg-gray-700 text-gray-300 shadow-md transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-blue-500 appearance-none h-3"
+              className="mt-1 block w-full rounded-full bg-gray-700 text-gray-300 shadow-md transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-purple-500 appearance-none h-3"
               value={slider}
               onChange={(e) => setSlider(e.target.value)}
               style={{ background: `linear-gradient(to right, #818CF8 0%, #818CF8 ${(slider-140)/20*100}%, #4B5563 ${(slider-140)/20*100}%, #4B5563 100%)`}}
@@ -160,7 +160,7 @@ const CreateCDPForm = () => {
             {activeButton === "Market Price" && (
               <input
                 type="number"
-                className="opacity-100 p-4 mt-4 block w-full rounded-md bg-gray-700 text-gray-300 border-transparent shadow-md h-12 text-lg transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-blue-500"
+                className="opacity-100 p-4 mt-4 block w-full rounded-md bg-gray-700 text-gray-300 border-transparent shadow-md h-12 text-lg transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-purple-500"
                 value={solRate}
                 disabled
               />
@@ -168,7 +168,7 @@ const CreateCDPForm = () => {
             {activeButton === "Limit Price" && (
               <input
                 type="number"
-                className="mt-4 opacity-100 p-4 block w-full rounded-md bg-gray-700 text-gray-300 border-transparent shadow-md h-12 text-lg transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-blue-500"
+                className="mt-4 opacity-100 p-4 block w-full rounded-md bg-gray-700 text-gray-300 border-transparent shadow-md h-12 text-lg transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-purple-500"
                 value={limitPrice}
                 step={0.01}
                 onChange={(e) => setLimitPrice(Number(e.target.value))}
@@ -181,7 +181,7 @@ const CreateCDPForm = () => {
             <button
               type="button"
               className={`flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white ${
-                loading ? "bg-gray-700" : "bg-blue-600 hover:bg-blue-700"
+                loading ? "bg-gray-700" : "bg-purple-600 hover:bg-purple-700"
               }`}
               disabled={loading}
               onClick={onCreate}

@@ -82,7 +82,7 @@ const CDPInteraction = () => {
   ]);
 
   return (
-    <div className="flex justify-center items-center h-full my-8 bg-gray-900">
+    <div className="flex justify-center items-center h-full my-32 bg-gray-900">
       <div className="w-full md:w-1/2 lg:w-2/3 p-8 bg-gray-800 rounded-lg shadow-xl space-y-6">
         <h1 className="text-4xl text-center font-semibold mb-8 text-purple-500">Manage Your CDP</h1>
 

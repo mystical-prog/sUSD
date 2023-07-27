@@ -12,6 +12,7 @@ import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
 import BottomBar from './components/BottomBar';
 import CDPInteraction from './components/CDPInteraction';
 import List from './components/List';
+import List from './components/List';
 
 require('@solana/wallet-adapter-react-ui/styles.css');
 
