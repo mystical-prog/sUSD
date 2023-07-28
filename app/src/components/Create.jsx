@@ -40,6 +40,12 @@ const CreateCDPForm = () => {
     setLoading(false);
   }
 
+  const sendLimitTx = async (ser) => {
+    const sig = await sendDurableTx(wallet, ser);
+    alert("Limit Order Executed!");
+    console.log(sig);
+  }
+
   const handleLimitOrder = async () => {
     let temp = limitOrders;
     const [noncePubkey, nonce] = await createNonce(wallet);
@@ -56,11 +62,9 @@ const CreateCDPForm = () => {
     let temp = limitOrders;
     
     for(const i in temp){
-      console.log(temp[i].price);
-      if(temp[i].price <= Number(solRate)) {
-          const sig = await sendDurableTx(wallet, temp[i].ser);
-          alert("Limit Order Executed!");
-          console.log(sig);
+      console.log(temp[i].price <= Number(res.data.data.amount).toFixed(2));
+      if(temp[i].price <= Number(res.data.data.amount).toFixed(2)) {
+          await sendLimitTx(temp[i].ser);
           temp.splice(i, 1);
       }
     }

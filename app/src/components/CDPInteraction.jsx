@@ -63,22 +63,21 @@ const CDPInteraction = () => {
     let temp = limit;
     
     for(const i in temp){
-      console.log(temp[i].price <= Number(solRate));
       if(temp[i].type == "Add SOL") {
-        if(temp[i].price <= Number(solRate)) {
+        if(temp[i].price <= Number(res.data.data.amount).toFixed(2)) {
           const sig = await sendDurableTx(wallet, temp[i].ser);
           alert("Limit Order Executed!");
           console.log(sig);
           temp.splice(i, 1);
         }
       } else {
-        if(temp[i].price >= Number(solRate)) {
+        if(temp[i].price >= Number(res.data.data.amount).toFixed(2)) {
           const sig = await sendDurableTx(wallet, temp[i].ser);
           alert("Limit Order Executed!");
           console.log(sig);
           temp.splice(i, 1);
           setLimitOrders([]);
-          navigate(`/list`);
+          window.location.href = "/";
         }
       }
     }
