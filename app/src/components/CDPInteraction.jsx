@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
 import Modal from "./Modal";
 import { useParams } from "react-router-dom";
-import { getSpecificCDP } from "../logic/chain-call";
+import { getSpecificCDP, sendDurableTx } from "../logic/chain-call";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import BottomBar from "./BottomBar";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const FORM_CONFIGS = {
   'Issue sUSD': [
@@ -29,17 +32,23 @@ const FORM_CONFIGS = {
 };
 
 const CDPInteraction = () => {
+  const navigate = useNavigate();
   const {pubkey} = useParams();
+  const [solRate, setRate] = useState(22);
   const wallet = useAnchorWallet();
   const [modalOpen, setModalOpen] = useState(false);
   const [activeAction, setActiveAction] = useState(null);
-  const [activeTab, setActiveTab] = useState('CDP Management');  // new state for active tab
+  const [activeTab, setActiveTab] = useState('CDP Management'); 
+  const [limit, setLimitOrders] = useState([]);
 
   const actions = [
-    "Issue sUSD", "Add SOL", "Close CDP", "Remove SOL", "Adjust Safemint Rate", "Repay sUSD"
+    "Issue sUSD", "Repay sUSD", "Add SOL", "Remove SOL", "Close CDP", "Adjust Safemint Rate",
   ];
 
   const getCDP = async () => {
+    const res = await axios.get("https://api.coinbase.com/v2/prices/SOL-USD/spot");
+    setRate(Number(res.data.data.amount).toFixed(2));
+
     const cdp = await getSpecificCDP(wallet, pubkey);
     setInfo([
       { title: 'Entry Rate', value: Number(Number(cdp.entryPrice) * 10 / LAMPORTS_PER_SOL).toFixed(2)},
@@ -50,7 +59,31 @@ const CDPInteraction = () => {
       { title: 'Issued Debt', value: Number(Number(cdp.usedDebt) / 10**6).toFixed(2) },
       { title: 'Volume', value: Number(cdp.amount) * LAMPORTS_PER_SOL/ 10**11 },
     ])
-    console.log(cdp);
+
+    let temp = limit;
+    
+    for(const i in temp){
+      console.log(temp[i].price <= Number(solRate));
+      if(temp[i].type == "Add SOL") {
+        if(temp[i].price <= Number(solRate)) {
+          const sig = await sendDurableTx(wallet, temp[i].ser);
+          alert("Limit Order Executed!");
+          console.log(sig);
+          temp.splice(i, 1);
+        }
+      } else {
+        if(temp[i].price >= Number(solRate)) {
+          const sig = await sendDurableTx(wallet, temp[i].ser);
+          alert("Limit Order Executed!");
+          console.log(sig);
+          temp.splice(i, 1);
+          setLimitOrders([]);
+          navigate(`/list`);
+        }
+      }
+    }
+    setLimitOrders(temp);
+    console.log(limit);
   }
 
   useEffect(() => {
@@ -84,13 +117,8 @@ const CDPInteraction = () => {
     { title: 'Volume', value: '7000' },
   ]);
 
-  const [cdps, setCdps] = useState([
-    {amount: 100, price: 50, debtRate: 5, nonce: 1234567890},
-    {amount: 200, price: 45, debtRate: 10, nonce: 2345678901},
-    {amount: 150, price: 55, debtRate: 7, nonce: 3456789012}
-  ]);
-
   return (
+    <>
     <div className="flex justify-center items-center h-full my-16 bg-gray-900">
       <div className="w-full md:w-1/2 lg:w-2/3 p-8 bg-gray-800 rounded-lg shadow-xl space-y-6">
         <h1 className="text-4xl text-center font-semibold mb-8 text-purple-500">Manage Your CDP</h1>
@@ -146,18 +174,21 @@ const CDPInteraction = () => {
         )}
 
         {activeTab === 'Orders' && (
+          <>
+          { limit.length == 0 ? <div className="block text-lg font-medium text-gray-300 transition-colors duration-200 ease-in-out">No Active Limit Orders</div> :
           <div className="mt-5">
             <h2 className="text-lg font-semibold tracking-wide text-purple-500 text-center">Orders</h2>
-            {cdps.map((cdp, index) => (
+            {limit.map((order, index) => (
               <div key={index} className="bg-gray-700 rounded-md mt-4 p-4">
-                <h3 className="text-lg text-white">Order #{index+1}</h3>
-                <p className="text-white mt-2">Amount: {cdp.amount}</p>
-                <p className="text-white">Price: {cdp.price}</p>
-                <p className="text-white">Debt Rate: {cdp.debtRate}</p>
-                <p className="text-white">Nonce: {cdp.nonce}</p>
+                <h3 className="text-lg text-white">{order.type}</h3>
+                { order.type == "Add SOL" ? <p className="text-white mt-2">Amount: {order.amount}</p> : "" }
+                <p className="text-white">Price: {order.price}</p>
+                <p className="text-white">Nonce: {order.nonce}</p>
               </div>
             ))}
           </div>
+          }
+          </>
         )}
 
         {modalOpen && activeAction && (
@@ -167,10 +198,15 @@ const CDPInteraction = () => {
             onClose={() => setModalOpen(false)}
             onSubmit={handleFormSubmit}
             pubkey={pubkey}
+            limitOrders={limit}
+            setOrders={setLimitOrders}
+            currPrice={solRate}
           />
         )}
       </div>
     </div>
+    <BottomBar solPrice={solRate} />
+    </>
   );
 };
 

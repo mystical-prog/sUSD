@@ -62,7 +62,8 @@ export const getCDPsOnChain = async (wallet) => {
     const cDPsOnChain = await program.account.cdp.all();
     let temp_cdps = [];
     for(const i in cDPsOnChain) {
-      if(cDPsOnChain[i].account.debtor.toBase58() == provider.wallet.publicKey) {
+      console.log(cDPsOnChain[i].account.state);
+      if(cDPsOnChain[i].account.debtor.toBase58() == provider.wallet.publicKey && Object.keys(cDPsOnChain[i].account.state)[0] == "active") {
         temp_cdps.push(cDPsOnChain[i]);
       }
     }
@@ -203,12 +204,50 @@ export const addCollateralTx = async (wallet, amount, cdp) => {
     })
     .signers([])
     .rpc();
-    alert("Added Collateral - ", tx);
+    alert("Added Collateral");
     console.log(tx);
   } catch (error) {
     console.log(error);
     alert(error);
   }
+}
+
+export const addLimitTx = async (wallet, amount, cdp, noncePubKey, nonce, key, signTransaction) => {
+  const provider = getProvider(wallet);
+  if(!provider) {
+    throw("Provider is null");
+  }
+  const temp = JSON.parse(JSON.stringify(idl));
+  const program = new anchor.Program(temp, temp.metadata.address, provider);
+  const [solPDA, solPDABump] = anchor.web3.PublicKey.findProgramAddressSync(
+    [provider.wallet.publicKey.toBuffer()],
+    program.programId
+  );
+  const ix = program.instruction.addCollateral(new anchor.BN(amount * web3.LAMPORTS_PER_SOL), {
+    accounts : {
+      cdp : cdp,
+      signer : provider.wallet.publicKey,
+      solPda : solPDA,
+      solUsdPriceAccount : sol_usd_price_account,
+      systemProgram : anchor.web3.SystemProgram.programId
+    }
+  });
+
+  const advanceIX = web3.SystemProgram.nonceAdvance({
+      authorizedPubkey: nonceAuthKP.publicKey,
+      noncePubkey: noncePubKey
+  })
+
+  const tx = new web3.Transaction();
+  tx.add(advanceIX);
+  tx.add(ix);
+  tx.recentBlockhash = nonce;
+  tx.feePayer = key;
+  tx.sign(nonceAuthKP);
+  const signedtx = await signTransaction(tx);
+  const serialisedTx = signedtx.serialize({requireAllSignatures: false});
+  console.log(serialisedTx);
+  return serialisedTx;
 }
 
 export const removeCollateralTx = async (wallet, amount, cdp) => {
@@ -233,7 +272,7 @@ export const removeCollateralTx = async (wallet, amount, cdp) => {
     })
     .signers([])
     .rpc();
-    alert("Removed Collateral - ", tx);
+    alert("Removed Collateral!");
     console.log(tx);
   } catch (error) {
     console.log(error);
@@ -335,4 +374,86 @@ export const adjustDebtPercentTx = async (wallet, percent, cdp) => {
     console.log(error);
     alert(error);
   }
+}
+
+export const closeCDPTx = async (wallet, cdp) => {
+  const provider = getProvider(wallet);
+  if(!provider) {
+    throw("Provider is null");
+  }
+  const temp = JSON.parse(JSON.stringify(idl));
+  const program = new anchor.Program(temp, temp.metadata.address, provider);
+  const [susd, susdBump] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("susd")],
+    program.programId
+  );
+  const singer_susd = await getOrCreateAssociatedTokenAccount(provider.connection, nonceAuthKP, susd, provider.wallet.publicKey);
+  const [solPDA, solPDABump] = anchor.web3.PublicKey.findProgramAddressSync(
+    [provider.wallet.publicKey.toBuffer()],
+    program.programId
+  );
+  try {
+    const tx = await program.methods.closePosition()
+    .accounts({
+      cdp : cdp,
+      signer : provider.wallet.publicKey,
+      susdMint : susd,
+      solPda : solPDA,
+      signerSusd : singer_susd.address,
+      tokenProgram : TOKEN_PROGRAM_ID,
+      systemProgram : anchor.web3.SystemProgram.programId
+    })
+    .signers([])
+    .rpc();
+    alert("Position Closed Successfully!");
+    console.log(tx);
+  } catch (error) {
+    console.log(error);
+    alert(error);
+  }
+}
+
+export const closeLimitTx = async (wallet, cdp, noncePubKey, nonce, key, signTransaction) => {
+  const provider = getProvider(wallet);
+  if(!provider) {
+    throw("Provider is null");
+  }
+  const temp = JSON.parse(JSON.stringify(idl));
+  const program = new anchor.Program(temp, temp.metadata.address, provider);
+  const [susd, susdBump] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("susd")],
+    program.programId
+  );
+  const singer_susd = await getOrCreateAssociatedTokenAccount(provider.connection, nonceAuthKP, susd, provider.wallet.publicKey);
+  const [solPDA, solPDABump] = anchor.web3.PublicKey.findProgramAddressSync(
+    [provider.wallet.publicKey.toBuffer()],
+    program.programId
+  );
+  const ix = program.instruction.closePosition({
+    accounts : {
+      cdp : cdp,
+      signer : provider.wallet.publicKey,
+      susdMint : susd,
+      solPda : solPDA,
+      signerSusd : singer_susd.address,
+      tokenProgram : TOKEN_PROGRAM_ID,
+      systemProgram : anchor.web3.SystemProgram.programId
+    }
+  });
+
+  const advanceIX = web3.SystemProgram.nonceAdvance({
+      authorizedPubkey: nonceAuthKP.publicKey,
+      noncePubkey: noncePubKey
+  })
+
+  const tx = new web3.Transaction();
+  tx.add(advanceIX);
+  tx.add(ix);
+  tx.recentBlockhash = nonce;
+  tx.feePayer = key;
+  tx.sign(nonceAuthKP);
+  const signedtx = await signTransaction(tx);
+  const serialisedTx = signedtx.serialize({requireAllSignatures: false});
+  console.log(serialisedTx);
+  return serialisedTx;
 }

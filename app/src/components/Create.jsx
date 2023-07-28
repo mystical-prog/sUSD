@@ -1,6 +1,6 @@
 import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import React, { useState, useEffect } from "react";
-import { createCDP, createLimitCDP, createNonce, createSOLPDA, getCDPsOnChain, sendDurableTx } from "../logic/chain-call";
+import { createCDP, createLimitCDP, createNonce, createSOLPDA, sendDurableTx } from "../logic/chain-call";
 import axios from "axios";
 import BottomBar from "./BottomBar";
 
@@ -26,6 +26,20 @@ const CreateCDPForm = () => {
     setLimitPrice(solRate);
   }
 
+  const handleSOLPDA = async () => {
+    setLoading(true);
+    try {
+      const res = await createSOLPDA(wallet);
+      alert("Created SOL PDA Successfully!");
+      setLoading(false);
+    } catch (error) {
+      console.log(error);
+      alert(error);
+      setLoading(false);
+    }
+    setLoading(false);
+  }
+
   const handleLimitOrder = async () => {
     let temp = limitOrders;
     const [noncePubkey, nonce] = await createNonce(wallet);
@@ -42,7 +56,8 @@ const CreateCDPForm = () => {
     let temp = limitOrders;
     
     for(const i in temp){
-      if(temp[i].price <= solRate) {
+      console.log(temp[i].price);
+      if(temp[i].price <= Number(solRate)) {
           const sig = await sendDurableTx(wallet, temp[i].ser);
           alert("Limit Order Executed!");
           console.log(sig);
@@ -205,6 +220,38 @@ const CreateCDPForm = () => {
                 </>
               ) : (
                 "Create CDP"
+              )}
+            </button>
+            <button
+              type="button"
+              className={`flex items-center justify-center px-5 py-3 border border-transparent text-base ml-10 font-medium rounded-md text-white ${
+                loading ? "bg-gray-700" : "bg-purple-600 hover:bg-purple-700"
+              }`}
+              disabled={loading}
+              onClick={handleSOLPDA}
+            >
+              {loading ? (
+                <>
+                <div className="animate-spin mr-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    className="h-5 w-5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                </div>
+                <span>Loading</span>
+                </>
+              ) : (
+                "Create SOL PDA"
               )}
             </button>
             </div>
