@@ -6,10 +6,10 @@ import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 const FORM_CONFIGS = {
-  'Issue CDP': [
+  'Issue sUSD': [
     { type: 'text', name: 'field1', label: 'Field 1', required: true },
   ],
-  'Add CDP': [
+  'Add SOL': [
     { type: 'toggle', name: 'marketPrice', label: 'Market Price' },
     { type: 'toggle', name: 'limitPrice', label: 'Limit Price' },
   ],
@@ -17,10 +17,10 @@ const FORM_CONFIGS = {
     { type: 'toggle', name: 'marketPrice', label: 'Market Price' },
     { type: 'toggle', name: 'limitPrice', label: 'Limit Price' },
   ],
-  'Remove CKBTC': [
+  'Remove SOL': [
     { type: 'text', name: 'field1', label: 'Field 1', required: true },
   ],
-  'Repay CKBTC': [
+  'Repay sUSD': [
     { type: 'text', name: 'field1', label: 'Field 1', required: true },
   ],
   'Adjust Safemint Rate': [
@@ -36,7 +36,7 @@ const CDPInteraction = () => {
   const [activeTab, setActiveTab] = useState('CDP Management');  // new state for active tab
 
   const actions = [
-    "Issue CDP", "Add CDP", "Close CDP", "Remove CKBTC", "Adjust Safemint Rate", "Repay CKBTC"
+    "Issue sUSD", "Add SOL", "Close CDP", "Remove SOL", "Adjust Safemint Rate", "Repay sUSD"
   ];
 
   useEffect(() => {
@@ -82,7 +82,7 @@ const CDPInteraction = () => {
   ]);
 
   return (
-    <div className="flex justify-center items-center h-full my-32 bg-gray-900">
+    <div className="flex justify-center items-center h-full my-16 bg-gray-900">
       <div className="w-full md:w-1/2 lg:w-2/3 p-8 bg-gray-800 rounded-lg shadow-xl space-y-6">
         <h1 className="text-4xl text-center font-semibold mb-8 text-purple-500">Manage Your CDP</h1>
 

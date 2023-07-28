@@ -1,6 +1,8 @@
+import { useAnchorWallet } from '@solana/wallet-adapter-react';
 import { useState } from 'react';
 
 const Modal = ({ action, onClose }) => {
+  const wallet = useAnchorWallet();
   const [sliderValue, setSliderValue] = useState(137);
   const [activeButton, setActiveButton] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -13,10 +15,13 @@ const Modal = ({ action, onClose }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setShowAlert(true);
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setShowAlert(true);
   };
+
+  const handleIssue = (e) => {
+    e.preventDefault();
+    
+    setShowAlert(true);
+  }
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
@@ -29,8 +34,8 @@ const Modal = ({ action, onClose }) => {
 
         <h2 className="text-lg text-white font-semibold mb-3">{action}</h2>
 
-        {action === 'Issue CDP' && (
-          <form onSubmit={handleSubmit}>
+        {action === 'Issue sUSD' && (
+          <form onSubmit={handleIssue}>
             <label className="block mb-3">
               <span className="text-white">Amount:</span>
               <input
@@ -57,7 +62,7 @@ const Modal = ({ action, onClose }) => {
             </form>
             )}
 
-        {action === 'Add CDP' && (
+        {action === 'Add SOL' && (
           <div>
             <div className="flex space-x-4 mt-3">
               <button
@@ -197,7 +202,7 @@ const Modal = ({ action, onClose }) => {
         </div>
         )}
 
-        {action === 'Remove CDP' && (
+        {action === 'Remove SOL' && (
           <form onSubmit={handleSubmit}>
           <label className="block mb-3">
             <span className="text-white">Amount:</span>
@@ -212,7 +217,7 @@ const Modal = ({ action, onClose }) => {
         </form>
         )}
 
-        {action === 'Repay CDP' && (
+        {action === 'Repay sUSD' && (
           <form onSubmit={handleSubmit}>
           <label className="block mb-3">
             <span className="text-white">Amount:</span>
@@ -226,36 +231,6 @@ const Modal = ({ action, onClose }) => {
           <button className="mt-3 bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded" type="submit">Submit</button>
         </form>
         )}
-
-        {action === 'Remove CKBTC' && (
-          <form onSubmit={handleSubmit}>
-          <label className="block mb-3">
-            <span className="text-white">Amount:</span>
-            <input
-                type="text"
-                className="opacity-100 p-4 mt-4 block w-full rounded-md bg-gray-700 text-gray-300 border-transparent shadow-md h-12 text-lg transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-purple-500"
-                placeholder="Enter amount"
-                required
-              />
-          </label>
-          <button className="mt-3 bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded" type="submit">Submit</button>
-        </form>
-        )}
-        {action === 'Repay CKBTC' && (
-          <form onSubmit={handleSubmit}>
-          <label className="block mb-3">
-            <span className="text-white">Amount:</span>
-            <input
-                type="text"
-                className="opacity-100 p-4 mt-4 block w-full rounded-md bg-gray-700 text-gray-300 border-transparent shadow-md h-12 text-lg transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-purple-500"
-                placeholder="Enter amount"
-                required
-              />
-          </label>
-          <button className="mt-3 bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded" type="submit">Submit</button>
-        </form>
-        )}
-
         {action === 'Adjust Safemint Rate' && (
           <form onSubmit={handleSubmit}>
             <label className="block mb-3 text-center">
@@ -280,9 +255,8 @@ const Modal = ({ action, onClose }) => {
         )}
       </div>
     </div>
-    );
-  };
-}
+  );
+};
 
 export default Modal;
 {/* <svg aria-hidden="true" role="status" class="inline w-4 h-4 mr-2 mb-1 text-white animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
