@@ -28,7 +28,7 @@ const List = () => {
   };
 
   return (
-    <div className="bg-gray-900 text-white p-8">
+    <div className="bg-gray-900 text-white p-8 my-14">
       <h1 className="text-4xl text-center font-semibold mb-8 text-purple-500">List of CDPs</h1>
       <div className="flex flex-wrap justify-around">
         {cdps.map((cdp, index) => (
@@ -41,7 +41,7 @@ const List = () => {
             <div class="px-6 py-4 border-b text-lg text-gray-300 border-gray-500 border-1 bg-gray-700">{`Entry Price: ${cdp.price}`}</div>
             <div class="px-6 py-4 border-b text-lg rounded-b-lg  text-gray-300 border-gray-500 border-1 bg-gray-700">{`Liquidation Price: ${cdp.liquidationPrice}`}</div>
             <button
-              className="mt-3 bg-gray-900 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded shadow-md transform transition hover:scale-105"
+              className="mt-3 bg-gray-900 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded shadow-md transition"
               onClick={() => handleManageClick(cdp)}
             >
               Manage CDP

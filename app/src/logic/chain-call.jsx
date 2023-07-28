@@ -178,6 +178,7 @@ export const sendDurableTx = async (wallet, rawTx) => {
   }
   const sig = await provider.connection.sendRawTransaction(rawTx);
   console.log("Sent durable transaction: ", sig);
+  return sig;
 }
 
 export const addCollateralTx = async (wallet, amount, cdp) => {
@@ -264,7 +265,71 @@ export const issueSUSDTx = async (wallet, amount, cdp) => {
     })
     .signers([])
     .rpc();
-    alert("Issued SUSD - ", tx);
+    alert("Issued SUSD!");
+    console.log(tx);
+  } catch (error) {
+    console.log(error);
+    alert(error);
+  }
+}
+
+export const repaySUSDTx = async (wallet, amount, cdp) => {
+  const provider = getProvider(wallet);
+  if(!provider) {
+    throw("Provider is null");
+  }
+  const temp = JSON.parse(JSON.stringify(idl));
+  const program = new anchor.Program(temp, temp.metadata.address, provider);
+  const [susd, susdBump] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("susd")],
+    program.programId
+  );
+  const singer_susd = await getOrCreateAssociatedTokenAccount(provider.connection, nonceAuthKP, susd, provider.wallet.publicKey);
+  try {
+    const tx = await program.methods.repaySusd(new anchor.BN(amount * 1000000))
+    .accounts({
+      cdp : cdp,
+      signer : provider.wallet.publicKey,
+      susdMint : susd,
+      signerSusd : singer_susd.address,
+      tokenProgram : TOKEN_PROGRAM_ID,
+      systemProgram : anchor.web3.SystemProgram.programId
+    })
+    .signers([])
+    .rpc();
+    alert("Repayed SUSD!");
+    console.log(tx);
+  } catch (error) {
+    console.log(error);
+    alert(error);
+  }
+}
+
+export const adjustDebtPercentTx = async (wallet, percent, cdp) => {
+  const provider = getProvider(wallet);
+  if(!provider) {
+    throw("Provider is null");
+  }
+  const temp = JSON.parse(JSON.stringify(idl));
+  const program = new anchor.Program(temp, temp.metadata.address, provider);
+  const [susd, susdBump] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("susd")],
+    program.programId
+  );
+  const singer_susd = await getOrCreateAssociatedTokenAccount(provider.connection, nonceAuthKP, susd, provider.wallet.publicKey);
+  try {
+    const tx = await program.methods.adjustDebtPercent(new anchor.BN(percent * 100))
+    .accounts({
+      cdp : cdp,
+      signer : provider.wallet.publicKey,
+      susdMint : susd,
+      signerSusd : singer_susd.address,
+      tokenProgram : TOKEN_PROGRAM_ID,
+      systemProgram : anchor.web3.SystemProgram.programId
+    })
+    .signers([])
+    .rpc();
+    alert("Adjusted Safemint!");
     console.log(tx);
   } catch (error) {
     console.log(error);

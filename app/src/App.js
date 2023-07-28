@@ -11,6 +11,7 @@ import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
 import BottomBar from './components/BottomBar';
 import CDPInteraction from './components/CDPInteraction';
+import Landing from './components/Landing';
 import List from './components/List';
 
 require('@solana/wallet-adapter-react-ui/styles.css');
@@ -25,6 +26,7 @@ function App() {
         <Navbar />
           <main>
           <Routes>
+            <Route path='' element={<Landing />} />
             <Route path='/create' element={<CreateCDPForm />} />
             <Route path='/list' element={<List />} />
             <Route path='/interact/:pubkey' element={<CDPInteraction />} />

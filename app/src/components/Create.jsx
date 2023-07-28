@@ -43,13 +43,10 @@ const CreateCDPForm = () => {
     
     for(const i in temp){
       if(temp[i].price <= solRate) {
-        try {
-          await sendDurableTx(wallet, temp[i].ser);
-          alert("Limit order executed!");
+          const sig = await sendDurableTx(wallet, temp[i].ser);
+          alert("Limit Order Executed!");
+          console.log(sig);
           temp.splice(i, 1);
-        } catch (error) {
-          console.log(error);
-        }
       }
     }
     setLimitOrders(temp);

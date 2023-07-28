@@ -39,19 +39,28 @@ const CDPInteraction = () => {
     "Issue sUSD", "Add SOL", "Close CDP", "Remove SOL", "Adjust Safemint Rate", "Repay sUSD"
   ];
 
+  const getCDP = async () => {
+    const cdp = await getSpecificCDP(wallet, pubkey);
+    setInfo([
+      { title: 'Entry Rate', value: Number(Number(cdp.entryPrice) * 10 / LAMPORTS_PER_SOL).toFixed(2)},
+      { title: 'Liquidation Rate', value: Number(Number(cdp.liquidationPrice) * 10 / LAMPORTS_PER_SOL).toFixed(2) },
+      { title: 'Amount', value: Number(cdp.amount) * LAMPORTS_PER_SOL/ 10**11 },
+      { title: 'Safemint Rate', value: Number(cdp.debtPercent) / 100 },
+      { title: 'Max Issuable Debt', value: Number(Number(cdp.maxDebt) / 10**6).toFixed(2) },
+      { title: 'Issued Debt', value: Number(Number(cdp.usedDebt) / 10**6).toFixed(2) },
+      { title: 'Volume', value: Number(cdp.amount) * LAMPORTS_PER_SOL/ 10**11 },
+    ])
+    console.log(cdp);
+  }
+
   useEffect(() => {
     (async () => {
-      const cdp = await getSpecificCDP(wallet, pubkey);
-      setInfo([
-        { title: 'Entry Rate', value: Number(Number(cdp.entryPrice) * 10 / LAMPORTS_PER_SOL).toFixed(2)},
-        { title: 'Liquidation Rate', value: Number(Number(cdp.liquidationPrice) * 10 / LAMPORTS_PER_SOL).toFixed(2) },
-        { title: 'Amount', value: Number(cdp.amount) * LAMPORTS_PER_SOL/ 10**11 },
-        { title: 'Safemint Rate', value: Number(cdp.debtPercent) / 100 },
-        { title: 'Max Issuable Debt', value: Number(Number(cdp.maxDebt) / 10**6).toFixed(2) },
-        { title: 'Issued Debt', value: Number(Number(cdp.usedDebt) / 10**6).toFixed(2) },
-        { title: 'Volume', value: Number(cdp.amount) * LAMPORTS_PER_SOL/ 10**11 },
-      ])
-      console.log(cdp);
+        await getCDP();
+
+        const intervalId = setInterval(getCDP, 5000);
+        return () => {
+          clearInterval(intervalId);
+        }
     })();
   }, []);
 
@@ -127,7 +136,7 @@ const CDPInteraction = () => {
                 <button
                   key={index}
                   onClick={() => handleActionClick(action)}
-                  className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded shadow-lg transform transition hover:scale-105"
+                  className="bg-purple-500 hover:bg-purple-700 text-white font-medium py-4 px-6 rounded shadow-lg "
                 >
                   {action}
                 </button>
@@ -157,6 +166,7 @@ const CDPInteraction = () => {
             fields={FORM_CONFIGS[activeAction]}
             onClose={() => setModalOpen(false)}
             onSubmit={handleFormSubmit}
+            pubkey={pubkey}
           />
         )}
       </div>

@@ -1,10 +1,12 @@
 import { useAnchorWallet } from '@solana/wallet-adapter-react';
 import { useState } from 'react';
+import { adjustDebtPercentTx, issueSUSDTx, repaySUSDTx } from '../logic/chain-call';
 
-const Modal = ({ action, onClose }) => {
+const Modal = ({ action, onClose, pubkey }) => {
   const wallet = useAnchorWallet();
-  const [sliderValue, setSliderValue] = useState(137);
+  const [sliderValue, setSliderValue] = useState(140);
   const [activeButton, setActiveButton] = useState(null);
+  const [amount, setAmount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
 
@@ -17,10 +19,34 @@ const Modal = ({ action, onClose }) => {
     setShowAlert(true);
   };
 
-  const handleIssue = (e) => {
+  const handleIssue = async (e) => {
+    setLoading(true);
     e.preventDefault();
-    
+    const res = await issueSUSDTx(wallet, amount, pubkey);
+    console.log(res);
     setShowAlert(true);
+    setLoading(false);
+    setAmount(0);
+  }
+
+  const handleSafemint = async (e) => {
+    setLoading(true);
+    e.preventDefault();
+    const res = await adjustDebtPercentTx(wallet, sliderValue, pubkey);
+    console.log(res);
+    setShowAlert(true);
+    setLoading(false);
+    setAmount(0);
+  }
+
+  const handleRepay = async (e) => {
+    setLoading(true);
+    e.preventDefault();
+    const res = await repaySUSDTx(wallet, amount, pubkey);
+    console.log(res);
+    setShowAlert(true);
+    setLoading(false);
+    setAmount(0);
   }
 
   return (
@@ -39,23 +65,26 @@ const Modal = ({ action, onClose }) => {
             <label className="block mb-3">
               <span className="text-white">Amount:</span>
               <input
-                type="text"
+                type="number"
+                step={0.01}
+                min={0.01}
                 className="opacity-100 p-4 mt-4 block w-full rounded-md bg-gray-700 text-gray-300 border-transparent shadow-md h-12 text-lg transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-purple-500"
                 placeholder="Enter amount"
+                onChange={(e) => setAmount(e.target.value)}
                 required
               />
             </label>
-            <button className="mt-3 bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded" type="submit">Submit</button>
+            <button className="mt-3 bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded" type="submit">{loading ? "Loading.." : "Submit"}</button>
            
             {/* Alert */}
             {showAlert && 
-                    <div class="flex items-center p-4 my-4 text-sm text-green-800 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400" role="alert">
+                    <div class="flex items-center p-4 my-4 text-sm text-green-800 border-green-800 border-2 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400" role="alert">
                     <svg class="flex-shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
                     </svg>
                     <span class="sr-only">Info</span>
                     <div>
-                        <span class="font-medium">Success alert!</span> Change a few things up and try submitting again.
+                        <span class="font-medium">Interaction was successfull! </span>
                     </div>
                     </div>
             }
@@ -214,25 +243,50 @@ const Modal = ({ action, onClose }) => {
             />
           </label>
           <button className="mt-3 bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded" type="submit">Submit</button>
+          {showAlert && 
+                    <div class="flex items-center p-4 my-4 text-sm text-green-800 border-green-800 border-2 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400" role="alert">
+                    <svg class="flex-shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                    </svg>
+                    <span class="sr-only">Info</span>
+                    <div>
+                        <span class="font-medium">Interaction was successfull! </span>
+                    </div>
+                    </div>
+            }
         </form>
         )}
 
         {action === 'Repay sUSD' && (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleRepay}>
           <label className="block mb-3">
             <span className="text-white">Amount:</span>
             <input
-                type="text"
+                type="number"
+                min={0.01}
+                step={0.01}
                 className="opacity-100 p-4 mt-4 block w-full rounded-md bg-gray-700 text-gray-300 border-transparent shadow-md h-12 text-lg transition-all duration-200 ease-in-out hover:border-gray-500 focus:border-purple-500"
                 placeholder="Enter amount"
+                onChange={(e) => setAmount(e.target.value)}
                 required
               />
           </label>
-          <button className="mt-3 bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded" type="submit">Submit</button>
+          <button className="mt-3 bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded" type="submit">{loading ? "Loading.." : "Submit"}</button>
+          {showAlert && 
+                    <div class="flex items-center p-4 my-4 text-sm text-green-800 border-green-800 border-2 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400" role="alert">
+                    <svg class="flex-shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                    </svg>
+                    <span class="sr-only">Info</span>
+                    <div>
+                        <span class="font-medium">Interaction was successfull! </span>
+                    </div>
+                    </div>
+            }
         </form>
         )}
         {action === 'Adjust Safemint Rate' && (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSafemint}>
             <label className="block mb-3 text-center">
               <div className="flex justify-between text-md text-gray-400">
               <span>140</span>
@@ -242,15 +296,27 @@ const Modal = ({ action, onClose }) => {
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                 type="range"
                 name="rate"
-                min="137"
+                min="140"
                 max="160"
+                step={0.01}
                 value={sliderValue}
                 onChange={handleSliderChange}
                 required
               />
               <span className="text-center text-white">Rate: {sliderValue}</span>
             </label>
-            <button className="mt-3 bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded" type="submit">Submit</button>
+            <button className="mt-3 bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded" type="submit">{loading ? "Loading.." : "Submit"}</button>
+            {showAlert && 
+                    <div class="flex items-center p-4 my-4 text-sm text-green-800 border-green-800 border-2 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400" role="alert">
+                    <svg class="flex-shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                    </svg>
+                    <span class="sr-only">Info</span>
+                    <div>
+                        <span class="font-medium">Interaction was successfull! </span>
+                    </div>
+                    </div>
+            }
           </form>
         )}
       </div>
