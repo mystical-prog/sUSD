@@ -262,19 +262,28 @@ const CreateCDPForm = () => {
           </div>
         ) : (
           <>
-          { limitOrders.length == 0 ? (<div className="block text-lg font-medium text-gray-300 transition-colors duration-200 ease-in-out">No Active Limit Orders</div>) 
-          : 
-          <div className="mt-5">
+          { 
+    limitOrders.length == 0 ? 
+    (
+        <div className="block text-lg font-medium text-gray-300 transition-colors duration-200 ease-in-out">No Active Limit Orders</div>
+    ) : 
+    (
+        <div className="mt-5">
             {limitOrders.map((limit, index) => (
-              <div key={index} className="bg-gray-700 rounded-md mt-4 p-4">
-                <p className="text-white mt-2">Amount: {limit.amount}</p>
-                <p className="text-white">Price: {limit.price}</p>
-                <p className="text-white">Debt Rate: {limit.debtRate}</p>
-                <p className="text-white">Nonce: {limit.nonce}</p>
-              </div>
+                <div key={index} className="bg-gray-700 rounded-md mt-4 p-4">
+                    <p className="text-white mt-2">Amount: {limit.amount}</p>
+                    <p className="text-white">Price: {limit.price}</p>
+                    <p className="text-white">Debt Rate: {limit.debtRate}</p>
+                    <p className="text-white">Nonce: {limit.nonce}</p>
+                    <button className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 mt-2 rounded">
+                        Cancel Order
+                    </button>
+                </div>
             ))}
-          </div>
-          }
+        </div>
+    )
+}
+
           </>
         )}
       </div>
