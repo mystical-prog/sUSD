@@ -21,4 +21,5 @@ We have built a solution that allows the creation of CDPs, the addition or remov
 ## Applied Tracks
 * Most innovative Application
 * Best Consumer Application
+* Pyth Bounty
 * Phantom Bounty
