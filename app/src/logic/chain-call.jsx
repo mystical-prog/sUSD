@@ -38,6 +38,31 @@ export const createNonce = async (wallet) => {
     return [nonceKeypair.publicKey, nonce.nonce];
 }
 
+export const withDrawNonce = async (wallet, noncePubkey) => {
+  const provider = getProvider(wallet);
+  if(!provider) {
+    throw("Provider is null");
+  }
+  try{
+  const tx = new web3.Transaction();
+  tx.feePayer = nonceAuthKP.publicKey;
+  tx.recentBlockhash = (await provider.connection.getLatestBlockhash()).blockhash;
+  tx.add(
+    web3.SystemProgram.nonceWithdraw({
+      authorizedPubkey: nonceAuthKP.publicKey,
+      lamports: 0.0015 * web3.LAMPORTS_PER_SOL,
+      noncePubkey: noncePubkey,
+      toPubkey: nonceAuthKP.publicKey,
+    })
+  );
+  tx.sign(nonceAuthKP);
+  const sig = await web3.sendAndConfirmRawTransaction(provider.connection, tx.serialize({requireAllSignatures: false}));
+  console.log("Nonces Closed: ", sig);
+  } catch (error) {
+    console.log(error);
+  }
+}
+
 export const getProvider = (wallet) => {
 
     if(!wallet) {

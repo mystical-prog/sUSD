@@ -1,6 +1,6 @@
 import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import React, { useState, useEffect } from "react";
-import { createCDP, createLimitCDP, createNonce, createSOLPDA, sendDurableTx } from "../logic/chain-call";
+import { createCDP, createLimitCDP, createNonce, createSOLPDA, sendDurableTx, withDrawNonce } from "../logic/chain-call";
 import axios from "axios";
 import BottomBar from "./BottomBar";
 
@@ -54,6 +54,22 @@ const CreateCDPForm = () => {
     setLimitOrders(temp);
     alert("Limit Order Created!");
   };
+
+  const handleCancelOrder = async (index) => {
+    setLoading(true);
+    let temp = limitOrders;
+    try{
+      await withDrawNonce(wallet, temp[index].noncePubkey);
+      temp.splice(index, 1);
+      setLimitOrders(temp);
+      alert("Order Cancelled!");
+      setActiveTab('create');
+      setLoading(false);
+    } catch (error) {
+      console.log(error);
+      setLoading(false);
+    }
+  }
 
   const updateSolRate = async () => {
     const res = await axios.get("https://api.coinbase.com/v2/prices/SOL-USD/spot");
@@ -275,8 +291,8 @@ const CreateCDPForm = () => {
                     <p className="text-white">Price: {limit.price}</p>
                     <p className="text-white">Debt Rate: {limit.debtRate}</p>
                     <p className="text-white">Nonce: {limit.nonce}</p>
-                    <button className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 mt-2 rounded">
-                        Cancel Order
+                    <button onClick={() => handleCancelOrder(index)} className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 mt-2 rounded">
+                      Cancel Order
                     </button>
                 </div>
             ))}

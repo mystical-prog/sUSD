@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Modal from "./Modal";
 import { useParams } from "react-router-dom";
-import { getSpecificCDP, sendDurableTx } from "../logic/chain-call";
+import { getSpecificCDP, sendDurableTx, withDrawNonce } from "../logic/chain-call";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import BottomBar from "./BottomBar";
@@ -106,6 +106,19 @@ const CDPInteraction = () => {
     setModalOpen(false);
   };
 
+  const handleCancelOrder = async (index) => {
+    let temp = limit;
+    try{
+      await withDrawNonce(wallet, temp[index].noncePubkey);
+      temp.splice(index, 1);
+      setLimitOrders(temp);
+      alert("Order Cancelled!");
+      setActiveTab('CDP Management');
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   const [info, setInfo] = useState([
     { title: 'Entry Rate', value: '1.23' },
     { title: 'Liquidation Rate', value: '2.34' },
@@ -183,6 +196,9 @@ const CDPInteraction = () => {
                 { order.type == "Add SOL" ? <p className="text-white mt-2">Amount: {order.amount}</p> : "" }
                 <p className="text-white">Price: {order.price}</p>
                 <p className="text-white">Nonce: {order.nonce}</p>
+                <button onClick={() => handleCancelOrder(index)} className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 mt-2 rounded">
+                    Cancel Order
+                </button>
               </div>
             ))}
           </div>
